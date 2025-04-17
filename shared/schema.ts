@@ -1,5 +1,6 @@
 import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
+import { relations } from "drizzle-orm";
 import { z } from "zod";
 
 // Define user schema
@@ -96,3 +97,39 @@ export type CustomField = typeof customFields.$inferSelect;
 
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Task = typeof tasks.$inferSelect;
+
+// Define relations
+export const usersRelations = relations(users, ({ many }) => ({
+  boards: many(boards),
+}));
+
+export const boardsRelations = relations(boards, ({ one, many }) => ({
+  user: one(users, {
+    fields: [boards.userId],
+    references: [users.id],
+  }),
+  categories: many(categories),
+  customFields: many(customFields),
+}));
+
+export const categoriesRelations = relations(categories, ({ one, many }) => ({
+  board: one(boards, {
+    fields: [categories.boardId],
+    references: [boards.id],
+  }),
+  tasks: many(tasks),
+}));
+
+export const customFieldsRelations = relations(customFields, ({ one }) => ({
+  board: one(boards, {
+    fields: [customFields.boardId],
+    references: [boards.id],
+  }),
+}));
+
+export const tasksRelations = relations(tasks, ({ one }) => ({
+  category: one(categories, {
+    fields: [tasks.categoryId],
+    references: [categories.id],
+  }),
+}));
