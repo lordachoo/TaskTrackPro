@@ -1,5 +1,6 @@
 import { Draggable } from "react-beautiful-dnd";
 import { Task } from "@shared/schema";
+import { ReactNode } from "react";
 
 interface TaskCardProps {
   task: Task;
@@ -26,7 +27,7 @@ export default function TaskCard({
     priority,
     assignees = [],
     comments = 0,
-    customData = {}
+    customData = {} as Record<string, string>
   } = task;
 
   const getPriorityBadgeClass = (priority: string) => {
@@ -96,6 +97,22 @@ export default function TaskCard({
       onDelete(id);
     }
   };
+
+  // Helper function to safely render custom data values
+  const renderCustomValue = (value: unknown): ReactNode => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    if (typeof value === 'object') {
+      return JSON.stringify(value);
+    }
+    return String(value);
+  };
+
+  // Helper to check if customData exists and is an object
+  const hasCustomData = customData !== null && 
+    typeof customData === 'object' && 
+    Object.keys(customData).length > 0;
 
   return (
     <Draggable draggableId={`task-${id}`} index={index}>
@@ -172,12 +189,14 @@ export default function TaskCard({
             </div>
             
             {/* Render custom fields if any */}
-            {customData && Object.keys(customData).length > 0 && (
+            {hasCustomData && (
               <div className="mt-3 pt-3 border-t border-gray-100">
-                {Object.entries(customData as Record<string, string>).map(([key, value], index) => (
+                {Object.entries(customData as Record<string, unknown>).map(([key, value], index) => (
                   <div key={index} className="flex justify-between text-xs mt-1">
                     <span className="text-gray-500">{key}:</span>
-                    <span className="text-gray-700 font-medium">{value}</span>
+                    <span className="text-gray-700 font-medium">
+                      {renderCustomValue(value)}
+                    </span>
                   </div>
                 ))}
               </div>
