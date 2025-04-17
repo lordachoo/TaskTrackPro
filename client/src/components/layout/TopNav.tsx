@@ -1,15 +1,28 @@
 import { useState } from "react";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 
 interface TopNavProps {
   boardName: string;
   onMobileMenuToggle: () => void;
   onBoardNameChange?: (name: string) => void;
+  onBoardArchive?: () => void;
+  onExportBoard?: () => void;
+  disableBoardActions?: boolean;
 }
 
 export default function TopNav({ 
   boardName, 
   onMobileMenuToggle,
-  onBoardNameChange 
+  onBoardNameChange,
+  onBoardArchive,
+  onExportBoard,
+  disableBoardActions = false
 }: TopNavProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(boardName);
@@ -81,6 +94,42 @@ export default function TopNav({
           <button className="p-2 rounded-full hover:bg-gray-100 text-gray-600">
             <i className="ri-notification-line text-lg"></i>
           </button>
+          
+          {/* Board actions dropdown */}
+          {!disableBoardActions && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-2 rounded-full hover:bg-gray-100 text-gray-600">
+                  <i className="ri-more-2-line text-lg"></i>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {onBoardNameChange && (
+                  <DropdownMenuItem onClick={handleEditClick}>
+                    <i className="ri-edit-line mr-2"></i>
+                    Rename Board
+                  </DropdownMenuItem>
+                )}
+                {onExportBoard && (
+                  <DropdownMenuItem onClick={onExportBoard}>
+                    <i className="ri-download-2-line mr-2"></i>
+                    Export Board
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                {onBoardArchive && (
+                  <DropdownMenuItem 
+                    onClick={onBoardArchive}
+                    className="text-red-600 focus:text-red-600"
+                  >
+                    <i className="ri-archive-line mr-2"></i>
+                    Archive Board
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          
           <div className="md:hidden">
             <button className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
               <span className="text-white font-medium">JS</span>

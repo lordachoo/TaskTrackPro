@@ -148,6 +148,39 @@ export default function Dashboard() {
       });
     }
   };
+  
+  // Archive board mutation
+  const archiveBoardMutation = useMutation({
+    mutationFn: async (boardId: number) => {
+      const res = await apiRequest('PUT', `/api/boards/${boardId}/archive`, {});
+      return res.json();
+    },
+    onSuccess: (archivedBoard) => {
+      toast({
+        title: "Board archived",
+        description: "The board has been moved to the archive. You can restore it from the Archive page.",
+      });
+      // Redirect to another board or create a new one
+      // For now, we'll just navigate to the archived page
+      window.location.href = '/archived';
+    },
+    onError: (error) => {
+      console.error('Error archiving board:', error);
+      toast({
+        title: "Failed to archive board",
+        description: "There was an error archiving the board. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const handleBoardArchive = () => {
+    if (window.confirm(`Are you sure you want to archive the board "${currentBoard.name}"? All tasks and categories will be archived with it.`)) {
+      if (currentBoard.id) {
+        archiveBoardMutation.mutate(currentBoard.id);
+      }
+    }
+  };
 
   // Placeholder handlers
   const handleSearch = (query: string) => {
@@ -193,6 +226,7 @@ export default function Dashboard() {
           boardName={currentBoard.name} 
           onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           onBoardNameChange={handleBoardNameChange}
+          onBoardArchive={handleBoardArchive}
         />
         
         {/* Control Bar */}
