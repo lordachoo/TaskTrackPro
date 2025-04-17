@@ -17,7 +17,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // For demo purposes, always use userId 1
       const userId = 1;
-      const boards = await storage.getBoards(userId);
+      const showArchived = req.query.showArchived === 'true';
+      const boards = await storage.getBoards(userId, showArchived);
       res.json(boards);
     } catch (error) {
       console.error("Error getting boards:", error);
@@ -345,6 +346,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error restoring task:", error);
       res.status(500).json({ message: "Failed to restore task" });
+    }
+  });
+
+  // Archive board
+  apiRouter.put("/boards/:id/archive", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const board = await storage.getBoard(id);
+      
+      if (!board) {
+        return res.status(404).json({ message: "Board not found" });
+      }
+      
+      const updatedBoard = await storage.updateBoard(id, { isArchived: true });
+      res.json(updatedBoard);
+    } catch (error) {
+      console.error("Error archiving board:", error);
+      res.status(500).json({ message: "Failed to archive board" });
+    }
+  });
+
+  // Restore archived board
+  apiRouter.put("/boards/:id/restore", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const board = await storage.getBoard(id);
+      
+      if (!board) {
+        return res.status(404).json({ message: "Board not found" });
+      }
+      
+      const updatedBoard = await storage.updateBoard(id, { isArchived: false });
+      res.json(updatedBoard);
+    } catch (error) {
+      console.error("Error restoring board:", error);
+      res.status(500).json({ message: "Failed to restore board" });
+    }
+  });
+
+  // Get archived boards
+  apiRouter.get("/users/:userId/archivedBoards", async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const archivedBoards = await storage.getBoards(userId, true);
+      res.json(archivedBoards);
+    } catch (error) {
+      console.error("Error getting archived boards:", error);
+      res.status(500).json({ message: "Failed to get archived boards" });
     }
   });
 

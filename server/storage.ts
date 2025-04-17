@@ -15,7 +15,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
 
   // Board methods
-  getBoards(userId: number): Promise<Board[]>;
+  getBoards(userId: number, showArchived?: boolean): Promise<Board[]>;
   getBoard(id: number): Promise<Board | undefined>;
   createBoard(board: InsertBoard): Promise<Board>;
   updateBoard(id: number, board: Partial<InsertBoard>): Promise<Board | undefined>;
