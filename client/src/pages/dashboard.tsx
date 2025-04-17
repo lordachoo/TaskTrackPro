@@ -7,6 +7,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -224,7 +234,7 @@ export default function Dashboard() {
   
   // Find the active board using the activeBoardId
   const currentBoard = activeBoardId 
-    ? boards.find(board => board.id === activeBoardId) || (boards.length > 0 ? boards[0] : null)
+    ? boards.find((board: Board) => board.id === activeBoardId) || (boards.length > 0 ? boards[0] : null)
     : (boards.length > 0 ? boards[0] : null);
   
   // Fetch categories for the current board (if we have one)
@@ -418,6 +428,12 @@ export default function Dashboard() {
           onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           onBoardNameChange={handleBoardNameChange}
           onBoardArchive={handleBoardArchive}
+          onBoardDelete={handleBoardDelete}
+          allBoards={boards}
+          activeBoardId={activeBoardId}
+          onBoardSelect={handleBoardSelect}
+          boardSelectorOpen={boardSelectorOpen}
+          onBoardSelectorToggle={() => setBoardSelectorOpen(!boardSelectorOpen)}
         />
         
         {/* Control Bar */}
@@ -519,6 +535,29 @@ export default function Dashboard() {
           </Form>
         </DialogContent>
       </Dialog>
+      
+      {/* Delete Board Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the board
+              <span className="font-medium text-foreground"> "{currentBoard?.name}" </span>
+              and all of its tasks and categories.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBoardDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete Board
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
