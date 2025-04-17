@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
+import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -165,6 +166,8 @@ export default function Dashboard() {
   };
 
   const handleBoardNameChange = (name: string) => {
+    if (!currentBoard) return;
+    
     if (currentBoard.id) {
       updateBoardNameMutation.mutate({
         id: currentBoard.id,
@@ -199,6 +202,8 @@ export default function Dashboard() {
   });
   
   const handleBoardArchive = () => {
+    if (!currentBoard) return;
+    
     if (window.confirm(`Are you sure you want to archive the board "${currentBoard.name}"? All tasks and categories will be archived with it.`)) {
       if (currentBoard.id) {
         archiveBoardMutation.mutate(currentBoard.id);
@@ -231,6 +236,53 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-lg text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+
+
+  // Handle creating a new board
+  const handleCreateBoard = () => {
+    const boardName = prompt("Enter a name for your new board:");
+    if (boardName) {
+      createBoardMutation.mutate(boardName);
+    }
+  };
+
+  // No active boards case
+  if (!currentBoard) {
+    return (
+      <div className="flex h-screen overflow-hidden">
+        {/* Sidebar */}
+        <Sidebar 
+          isOpen={isMobileMenuOpen} 
+          onClose={() => setIsMobileMenuOpen(false)} 
+        />
+        
+        {/* Empty state with create board button */}
+        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 p-6">
+          <div className="text-center max-w-md">
+            <i className="ri-dashboard-3-line text-6xl text-gray-300 mb-4"></i>
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">No Active Boards</h1>
+            <p className="text-gray-600 mb-6">Create a new board to get started with your tasks.</p>
+            <Button 
+              size="lg"
+              onClick={handleCreateBoard}
+              className="flex items-center justify-center"
+              disabled={createBoardMutation.isPending}
+            >
+              <i className="ri-add-line mr-2"></i>
+              {createBoardMutation.isPending ? "Creating..." : "Create New Board"}
+            </Button>
+            <div className="mt-8">
+              <Link to="/archived" className="text-blue-500 flex items-center justify-center">
+                <i className="ri-archive-line mr-2"></i>
+                View Archived Boards
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -278,12 +330,7 @@ export default function Dashboard() {
               description: "This would apply sorting in a full implementation.",
             });
           }}
-          onCreateBoard={() => {
-            toast({
-              title: "Create Board",
-              description: "This would create a new board in a full implementation.",
-            });
-          }}
+          onCreateBoard={handleCreateBoard}
           categories={categoriesData || []}
         />
         
