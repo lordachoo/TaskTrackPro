@@ -59,6 +59,19 @@ export default function Archived() {
     },
     enabled: !!currentBoard.id
   });
+  
+  // Fetch archived boards
+  const { 
+    data: archivedBoards = [],
+    isLoading: isArchivedBoardsLoading
+  } = useQuery({
+    queryKey: ['/api/users', 1, 'archivedBoards'], // For demo purposes, always use userId 1
+    queryFn: async () => {
+      const res = await fetch('/api/users/1/archivedBoards');
+      if (!res.ok) throw new Error('Failed to load archived boards');
+      return res.json();
+    }
+  });
 
   // Restore task mutation
   const restoreTaskMutation = useMutation({
@@ -169,19 +182,6 @@ export default function Archived() {
       </div>
     );
   }
-
-  // Fetch archived boards
-  const { 
-    data: archivedBoards = [],
-    isLoading: isArchivedBoardsLoading
-  } = useQuery({
-    queryKey: ['/api/users', 1, 'archivedBoards'], // For demo purposes, always use userId 1
-    queryFn: async () => {
-      const res = await fetch('/api/users/1/archivedBoards');
-      if (!res.ok) throw new Error('Failed to load archived boards');
-      return res.json();
-    }
-  });
 
   // Restore board mutation
   const restoreBoardMutation = useMutation({
