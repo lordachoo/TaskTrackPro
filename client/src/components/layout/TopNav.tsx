@@ -6,14 +6,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface TopNavProps {
   boardName: string;
   onMobileMenuToggle: () => void;
   onBoardNameChange?: (name: string) => void;
   onBoardArchive?: () => void;
+  onBoardDelete?: () => void;
   onExportBoard?: () => void;
   disableBoardActions?: boolean;
+  allBoards?: { id: number; name: string }[];
+  activeBoardId?: number;
+  onBoardSelect?: (boardId: number) => void;
+  boardSelectorOpen?: boolean;
+  onBoardSelectorToggle?: () => void;
 }
 
 export default function TopNav({ 
@@ -21,11 +37,18 @@ export default function TopNav({
   onMobileMenuToggle,
   onBoardNameChange,
   onBoardArchive,
+  onBoardDelete,
   onExportBoard,
-  disableBoardActions = false
+  disableBoardActions = false,
+  allBoards = [],
+  activeBoardId,
+  onBoardSelect,
+  boardSelectorOpen = false,
+  onBoardSelectorToggle
 }: TopNavProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(boardName);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const handleEditClick = () => {
     setIsEditing(true);
@@ -64,6 +87,36 @@ export default function TopNav({
           </button>
           <div className="md:hidden font-bold text-lg text-primary">TaskFlow</div>
           <div className="hidden md:flex items-center">
+            {/* Board Selector Dropdown */}
+            {allBoards && allBoards.length > 1 && onBoardSelect && (
+              <DropdownMenu open={boardSelectorOpen} onOpenChange={onBoardSelectorToggle}>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center mr-4 px-3 py-1 rounded hover:bg-gray-100 text-gray-700">
+                    <i className="ri-dashboard-line mr-2"></i>
+                    <span className="font-medium">Boards</span>
+                    <i className="ri-arrow-down-s-line ml-2"></i>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  {allBoards.map((board) => (
+                    <DropdownMenuItem 
+                      key={board.id}
+                      onClick={() => onBoardSelect(board.id)}
+                      className={board.id === activeBoardId ? "bg-gray-100" : ""}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span>{board.name}</span>
+                        {board.id === activeBoardId && (
+                          <i className="ri-check-line text-green-600"></i>
+                        )}
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            
+            {/* Board Name (Editable) */}
             {isEditing ? (
               <input
                 type="text"
@@ -120,10 +173,19 @@ export default function TopNav({
                 {onBoardArchive && (
                   <DropdownMenuItem 
                     onClick={onBoardArchive}
-                    className="text-red-600 focus:text-red-600"
+                    className="text-amber-600 focus:text-amber-600"
                   >
                     <i className="ri-archive-line mr-2"></i>
                     Archive Board
+                  </DropdownMenuItem>
+                )}
+                {onBoardDelete && (
+                  <DropdownMenuItem 
+                    onClick={onBoardDelete}
+                    className="text-red-600 focus:text-red-600"
+                  >
+                    <i className="ri-delete-bin-line mr-2"></i>
+                    Delete Board
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>

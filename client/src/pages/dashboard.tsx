@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -215,8 +215,17 @@ export default function Dashboard() {
     }
   });
 
-  // If there are no active boards, we'll show an "Add Board" button
-  const currentBoard = boards.length > 0 ? boards[0] : null;
+  // Set active board ID if it's not set and we have boards
+  useEffect(() => {
+    if (boards.length > 0 && !activeBoardId) {
+      setActiveBoardId(boards[0].id);
+    }
+  }, [boards, activeBoardId]);
+  
+  // Find the active board using the activeBoardId
+  const currentBoard = activeBoardId 
+    ? boards.find(board => board.id === activeBoardId) || (boards.length > 0 ? boards[0] : null)
+    : (boards.length > 0 ? boards[0] : null);
   
   // Fetch categories for the current board (if we have one)
   const { 
@@ -300,6 +309,30 @@ export default function Dashboard() {
     if (boardName) {
       createBoardMutation.mutate(boardName);
     }
+  };
+  
+  // Handle board selection
+  const handleBoardSelect = (boardId: number) => {
+    setActiveBoardId(boardId);
+    setBoardSelectorOpen(false);
+    
+    // Invalidate categories and tasks queries for the new board
+    queryClient.invalidateQueries({ queryKey: ['/api/boards', boardId, 'categories'] });
+  };
+  
+  // Handle board deletion
+  const handleBoardDelete = () => {
+    if (!currentBoard) return;
+    
+    setIsDeleteDialogOpen(true);
+  };
+  
+  // Confirm board deletion
+  const confirmBoardDelete = () => {
+    if (!currentBoard) return;
+    
+    deleteBoardMutation.mutate(currentBoard.id);
+    setIsDeleteDialogOpen(false);
   };
 
   // Placeholder handlers
