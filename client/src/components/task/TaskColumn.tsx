@@ -9,6 +9,7 @@ interface TaskColumnProps {
   onAddTask: (categoryId: number) => void;
   onEditTask: (task: Task) => void;
   onArchiveTask: (taskId: number) => void;
+  onDeleteTask: (taskId: number) => void;
   onEditCategory: (category: Category) => void;
   onDeleteCategory: (categoryId: number) => void;
 }
@@ -19,6 +20,7 @@ export default function TaskColumn({
   onAddTask,
   onEditTask,
   onArchiveTask,
+  onDeleteTask,
   onEditCategory,
   onDeleteCategory
 }: TaskColumnProps) {
@@ -92,6 +94,7 @@ export default function TaskColumn({
                 categoryColor={category.color}
                 onEdit={onEditTask}
                 onArchive={onArchiveTask}
+                onDelete={onDeleteTask}
               />
             ))}
             {provided.placeholder}

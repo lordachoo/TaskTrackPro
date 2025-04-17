@@ -162,6 +162,46 @@ export default function TaskBoard({ boardId, onAddCategory }: TaskBoardProps) {
       });
     }
   });
+  
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (taskId: number) => {
+      const res = await apiRequest('DELETE', `/api/tasks/${taskId}`, {});
+      return { taskId, categoryId: Number(res.headers.get('X-Category-ID') || 0) };
+    },
+    onSuccess: (data: { taskId: number, categoryId: number }) => {
+      // Update local state
+      setCategoryTasks(prev => {
+        const newTasks = { ...prev };
+        
+        // If we don't have category ID from response, search through all categories
+        if (data.categoryId === 0) {
+          Object.keys(newTasks).forEach(catId => {
+            newTasks[Number(catId)] = newTasks[Number(catId)].filter(t => t.id !== data.taskId);
+          });
+        } else {
+          // If we have category ID, only update that category
+          if (newTasks[data.categoryId]) {
+            newTasks[data.categoryId] = newTasks[data.categoryId].filter(t => t.id !== data.taskId);
+          }
+        }
+        
+        return newTasks;
+      });
+      
+      toast({
+        title: "Task deleted",
+        description: "Task has been permanently deleted.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting task:', error);
+      toast({
+        title: "Failed to delete task",
+        description: "There was an error deleting the task. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
 
   // Handle drag and drop
   const handleDragEnd = (result: DropResult) => {
@@ -268,6 +308,7 @@ export default function TaskBoard({ boardId, onAddCategory }: TaskBoardProps) {
               onAddTask={handleAddTask}
               onEditTask={handleEditTask}
               onArchiveTask={(taskId) => archiveTaskMutation.mutate(taskId)}
+              onDeleteTask={(taskId) => deleteTaskMutation.mutate(taskId)}
               onEditCategory={() => {}}
               onDeleteCategory={() => {}}
             />

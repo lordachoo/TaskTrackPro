@@ -30,6 +30,9 @@ export default function Dashboard() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeBoardId, setActiveBoardId] = useState<number | undefined>(undefined);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [boardSelectorOpen, setBoardSelectorOpen] = useState(false);
   const { toast } = useToast();
 
   // All mutation hooks - define ALL hooks before any conditional returns
@@ -52,14 +55,59 @@ export default function Dashboard() {
         if (!oldData) return [newBoard];
         return [...oldData, newBoard];
       });
-      // Reload the page to update the UI
-      window.location.reload();
+      
+      // Set the active board to the new board and activate it
+      setActiveBoardId(newBoard.id);
     },
     onError: (error) => {
       console.error('Error creating board:', error);
       toast({
         title: "Failed to create board",
         description: "There was an error creating the board. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Delete board mutation
+  const deleteBoardMutation = useMutation({
+    mutationFn: async (boardId: number) => {
+      const res = await apiRequest('DELETE', `/api/boards/${boardId}`, {});
+      return boardId;
+    },
+    onSuccess: (deletedBoardId) => {
+      toast({
+        title: "Board deleted",
+        description: "The board has been permanently deleted.",
+      });
+      
+      // Remove the deleted board from cache
+      queryClient.setQueryData(['/api/boards'], (oldData: Board[] | undefined) => {
+        if (!oldData) return [];
+        return oldData.filter(board => board.id !== deletedBoardId);
+      });
+      
+      // If the deleted board was the active one, select the first available board
+      queryClient.fetchQuery({
+        queryKey: ['/api/boards'],
+        queryFn: async () => {
+          const res = await fetch('/api/boards');
+          if (!res.ok) throw new Error('Failed to load boards');
+          return res.json();
+        }
+      }).then((boards: Board[]) => {
+        if (boards.length > 0) {
+          setActiveBoardId(boards[0].id);
+        } else {
+          setActiveBoardId(undefined);
+        }
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting board:', error);
+      toast({
+        title: "Failed to delete board",
+        description: "There was an error deleting the board. Please try again.",
         variant: "destructive",
       });
     }

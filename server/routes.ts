@@ -83,10 +83,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.delete("/boards/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const success = await storage.deleteBoard(id);
       
-      if (!success) {
+      // Check if the board exists
+      const board = await storage.getBoard(id);
+      if (!board) {
         return res.status(404).json({ message: "Board not found" });
+      }
+      
+      // Get all categories for this board
+      const categories = await storage.getCategories(id);
+      
+      // Check if any categories have tasks - if so, don't allow deletion
+      for (const category of categories) {
+        const tasks = await storage.getTasks(category.id);
+        if (tasks.length > 0) {
+          return res.status(400).json({ 
+            message: "Cannot delete board with tasks. Archive or delete all tasks first." 
+          });
+        }
+      }
+      
+      // Delete all categories first
+      for (const category of categories) {
+        await storage.deleteCategory(category.id);
+      }
+      
+      // Now delete the board
+      const success = await storage.deleteBoard(id);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to delete board" });
       }
       
       res.status(204).send();
@@ -288,12 +313,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.delete("/tasks/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const success = await storage.deleteTask(id);
       
+      // Get the task first to retrieve the category ID
+      const task = await storage.getTask(id);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Store the category ID before deleting
+      const categoryId = task.categoryId;
+      
+      // Delete the task
+      const success = await storage.deleteTask(id);
       if (!success) {
         return res.status(404).json({ message: "Task not found" });
       }
       
+      // Include the category ID in the response header
+      res.setHeader('X-Category-ID', categoryId.toString());
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting task:", error);

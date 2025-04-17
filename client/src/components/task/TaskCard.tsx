@@ -155,7 +155,7 @@ export default function TaskCard({
             
             <div className="flex justify-between items-center">
               <div className="flex -space-x-2">
-                {assignees.map((assignee, index) => (
+                {assignees && assignees.map((assignee, index) => (
                   <div 
                     key={index}
                     className={`w-7 h-7 rounded-full ${getAssigneeColor(assignee)} flex items-center justify-center text-white text-xs`}
@@ -174,10 +174,10 @@ export default function TaskCard({
             {/* Render custom fields if any */}
             {customData && Object.keys(customData).length > 0 && (
               <div className="mt-3 pt-3 border-t border-gray-100">
-                {Object.entries(customData).map(([key, value], index) => (
+                {Object.entries(customData as Record<string, string>).map(([key, value], index) => (
                   <div key={index} className="flex justify-between text-xs mt-1">
                     <span className="text-gray-500">{key}:</span>
-                    <span className="text-gray-700 font-medium">{value as string}</span>
+                    <span className="text-gray-700 font-medium">{value}</span>
                   </div>
                 ))}
               </div>
