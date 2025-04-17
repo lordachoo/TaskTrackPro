@@ -30,9 +30,9 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
-  // Fetch the first board (for demo purposes)
+  // Fetch all active boards
   const { 
-    data: boards,
+    data: boards = [],
     isLoading: isBoardsLoading
   } = useQuery({
     queryKey: ['/api/boards'],
@@ -43,21 +43,22 @@ export default function Dashboard() {
     }
   });
 
-  // Use the first board or default to ID 1
-  const currentBoard: Board = boards && boards.length > 0 ? boards[0] : { id: 1, name: "Marketing Campaign Board", userId: 1 };
+  // If there are no active boards, we'll show an "Add Board" button
+  const currentBoard = boards.length > 0 ? boards[0] : null;
   
-  // Fetch categories for the current board
+  // Fetch categories for the current board (if we have one)
   const { 
     data: categoriesData = [],
     isLoading: isCategoriesLoading
   } = useQuery({
-    queryKey: ['/api/boards', currentBoard.id, 'categories'],
+    queryKey: ['/api/boards', currentBoard?.id, 'categories'],
     queryFn: async () => {
+      if (!currentBoard?.id) return [];
       const res = await fetch(`/api/boards/${currentBoard.id}/categories`);
       if (!res.ok) throw new Error('Failed to load categories');
       return res.json();
     },
-    enabled: !!currentBoard.id
+    enabled: !!currentBoard?.id
   });
 
   // Category form
@@ -125,6 +126,15 @@ export default function Dashboard() {
   });
 
   const handleCategoryFormSubmit = (data: CategoryFormValues) => {
+    if (!currentBoard?.id) {
+      toast({
+        title: "Error",
+        description: "No active board found. Please create a board first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Get existing categories to determine next order value
     queryClient.fetchQuery({
       queryKey: ['/api/boards', currentBoard.id, 'categories'],
