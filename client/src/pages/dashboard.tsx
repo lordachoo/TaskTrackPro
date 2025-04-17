@@ -26,48 +26,42 @@ const categorySchema = z.object({
 type CategoryFormValues = z.infer<typeof categorySchema>;
 
 export default function Dashboard() {
+  // State hooks - keep these at the top
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
-  // Fetch all active boards
-  const { 
-    data: boards = [],
-    isLoading: isBoardsLoading
-  } = useQuery({
-    queryKey: ['/api/boards'],
-    queryFn: async () => {
-      const res = await fetch('/api/boards');
-      if (!res.ok) throw new Error('Failed to load boards');
-      return res.json();
-    }
-  });
-
-  // If there are no active boards, we'll show an "Add Board" button
-  const currentBoard = boards.length > 0 ? boards[0] : null;
-  
-  // Fetch categories for the current board (if we have one)
-  const { 
-    data: categoriesData = [],
-    isLoading: isCategoriesLoading
-  } = useQuery({
-    queryKey: ['/api/boards', currentBoard?.id, 'categories'],
-    queryFn: async () => {
-      if (!currentBoard?.id) return [];
-      const res = await fetch(`/api/boards/${currentBoard.id}/categories`);
-      if (!res.ok) throw new Error('Failed to load categories');
+  // All mutation hooks - define ALL hooks before any conditional returns
+  // Create board mutation
+  const createBoardMutation = useMutation({
+    mutationFn: async (boardName: string) => {
+      const res = await apiRequest('POST', '/api/boards', { 
+        name: boardName, 
+        userId: 1 
+      });
       return res.json();
     },
-    enabled: !!currentBoard?.id
-  });
-
-  // Category form
-  const categoryForm = useForm<CategoryFormValues>({
-    resolver: zodResolver(categorySchema),
-    defaultValues: {
-      name: "",
-      color: "#6366f1" // default color
+    onSuccess: (newBoard) => {
+      toast({
+        title: "Board created",
+        description: "The new board has been created successfully.",
+      });
+      // Add new board to cached data
+      queryClient.setQueryData(['/api/boards'], (oldData: Board[] | undefined) => {
+        if (!oldData) return [newBoard];
+        return [...oldData, newBoard];
+      });
+      // Reload the page to update the UI
+      window.location.reload();
+    },
+    onError: (error) => {
+      console.error('Error creating board:', error);
+      toast({
+        title: "Failed to create board",
+        description: "There was an error creating the board. Please try again.",
+        variant: "destructive",
+      });
     }
   });
 
@@ -77,7 +71,7 @@ export default function Dashboard() {
       const res = await apiRequest('POST', '/api/categories', newCategory);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       toast({
         title: "Category created",
         description: "The new category has been added to the board.",
@@ -85,7 +79,7 @@ export default function Dashboard() {
       setIsCategoryModalOpen(false);
       categoryForm.reset();
       // Refetch categories
-      queryClient.invalidateQueries({ queryKey: ['/api/boards', currentBoard.id, 'categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/boards', variables.boardId, 'categories'] });
     },
     onError: (error) => {
       console.error('Error creating category:', error);
@@ -126,6 +120,72 @@ export default function Dashboard() {
     }
   });
 
+  // Archive board mutation
+  const archiveBoardMutation = useMutation({
+    mutationFn: async (boardId: number) => {
+      const res = await apiRequest('PUT', `/api/boards/${boardId}/archive`, {});
+      return res.json();
+    },
+    onSuccess: (archivedBoard) => {
+      toast({
+        title: "Board archived",
+        description: "The board has been moved to the archive. You can restore it from the Archive page.",
+      });
+      // Redirect to another board or create a new one
+      // For now, we'll just navigate to the archived page
+      window.location.href = '/archived';
+    },
+    onError: (error) => {
+      console.error('Error archiving board:', error);
+      toast({
+        title: "Failed to archive board",
+        description: "There was an error archiving the board. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Category form
+  const categoryForm = useForm<CategoryFormValues>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: {
+      name: "",
+      color: "#6366f1" // default color
+    }
+  });
+
+  // Data fetching - Fetch all active boards
+  const { 
+    data: boards = [],
+    isLoading: isBoardsLoading
+  } = useQuery({
+    queryKey: ['/api/boards'],
+    queryFn: async () => {
+      const res = await fetch('/api/boards');
+      if (!res.ok) throw new Error('Failed to load boards');
+      return res.json();
+    }
+  });
+
+  // If there are no active boards, we'll show an "Add Board" button
+  const currentBoard = boards.length > 0 ? boards[0] : null;
+  
+  // Fetch categories for the current board (if we have one)
+  const { 
+    data: categoriesData = [],
+    isLoading: isCategoriesLoading
+  } = useQuery({
+    queryKey: ['/api/boards', currentBoard?.id, 'categories'],
+    queryFn: async () => {
+      if (!currentBoard?.id) return [];
+      const res = await fetch(`/api/boards/${currentBoard.id}/categories`);
+      if (!res.ok) throw new Error('Failed to load categories');
+      return res.json();
+    },
+    enabled: !!currentBoard?.id
+  });
+
+  // Event handlers
   const handleCategoryFormSubmit = (data: CategoryFormValues) => {
     if (!currentBoard?.id) {
       toast({
@@ -176,31 +236,6 @@ export default function Dashboard() {
     }
   };
   
-  // Archive board mutation
-  const archiveBoardMutation = useMutation({
-    mutationFn: async (boardId: number) => {
-      const res = await apiRequest('PUT', `/api/boards/${boardId}/archive`, {});
-      return res.json();
-    },
-    onSuccess: (archivedBoard) => {
-      toast({
-        title: "Board archived",
-        description: "The board has been moved to the archive. You can restore it from the Archive page.",
-      });
-      // Redirect to another board or create a new one
-      // For now, we'll just navigate to the archived page
-      window.location.href = '/archived';
-    },
-    onError: (error) => {
-      console.error('Error archiving board:', error);
-      toast({
-        title: "Failed to archive board",
-        description: "There was an error archiving the board. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
-  
   const handleBoardArchive = () => {
     if (!currentBoard) return;
     
@@ -208,6 +243,14 @@ export default function Dashboard() {
       if (currentBoard.id) {
         archiveBoardMutation.mutate(currentBoard.id);
       }
+    }
+  };
+
+  // Handle creating a new board
+  const handleCreateBoard = () => {
+    const boardName = prompt("Enter a name for your new board:");
+    if (boardName) {
+      createBoardMutation.mutate(boardName);
     }
   };
 
@@ -239,16 +282,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
-
-
-  // Handle creating a new board
-  const handleCreateBoard = () => {
-    const boardName = prompt("Enter a name for your new board:");
-    if (boardName) {
-      createBoardMutation.mutate(boardName);
-    }
-  };
 
   // No active boards case
   if (!currentBoard) {
@@ -287,6 +320,7 @@ export default function Dashboard() {
     );
   }
 
+  // Normal view with active board
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
