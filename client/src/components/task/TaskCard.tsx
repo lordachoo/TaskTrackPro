@@ -7,6 +7,7 @@ interface TaskCardProps {
   categoryColor: string;
   onEdit: (task: Task) => void;
   onArchive: (taskId: number) => void;
+  onDelete: (taskId: number) => void;
 }
 
 export default function TaskCard({ 
@@ -14,7 +15,8 @@ export default function TaskCard({
   index, 
   categoryColor,
   onEdit,
-  onArchive
+  onArchive,
+  onDelete
 }: TaskCardProps) {
   const {
     id,
@@ -87,6 +89,13 @@ export default function TaskCard({
     e.stopPropagation();
     onArchive(id);
   };
+  
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm("Are you sure you want to permanently delete this task? This action cannot be undone.")) {
+      onDelete(id);
+    }
+  };
 
   return (
     <Draggable draggableId={`task-${id}`} index={index}>
@@ -109,8 +118,11 @@ export default function TaskCard({
             <div className="flex justify-between items-start mb-2">
               <h4 className="font-medium text-gray-800">{title}</h4>
               <div className="flex">
-                <button className="text-gray-400 hover:text-gray-600 mr-2" onClick={handleArchive}>
+                <button className="text-gray-400 hover:text-gray-600 mr-2" onClick={handleArchive} title="Archive Task">
                   <i className="ri-archive-line"></i>
+                </button>
+                <button className="text-red-400 hover:text-red-600 mr-2" onClick={handleDelete} title="Delete Task">
+                  <i className="ri-delete-bin-line"></i>
                 </button>
                 <button className="text-gray-400 hover:text-gray-600">
                   <i className="ri-drag-move-line"></i>
