@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -42,19 +42,45 @@ export default function Archived() {
     enabled: !!currentBoard.id
   });
 
-  const { 
-    data: archivedTasks = [],
-    isLoading: isTasksLoading,
-    error: tasksError
-  } = useQuery({
-    queryKey: ['/api/boards', currentBoard.id, 'archivedTasks'],
-    queryFn: async () => {
-      const res = await fetch(`/api/boards/${currentBoard.id}/archivedTasks`);
-      if (!res.ok) throw new Error('Failed to load archived tasks');
-      return res.json();
-    },
-    enabled: !!currentBoard.id
-  });
+  // We need to get archived tasks from all boards
+  const [allArchivedTasks, setAllArchivedTasks] = useState<Task[]>([]);
+  const [isTasksLoading, setIsTasksLoading] = useState(true);
+  const [tasksError, setTasksError] = useState<Error | null>(null);
+  
+  // Use effect to fetch archived tasks from all boards
+  useEffect(() => {
+    if (!boards || boards.length === 0) {
+      setIsTasksLoading(false);
+      return;
+    }
+    
+    // Get archived tasks from all boards sequentially
+    const fetchAllArchivedTasks = async () => {
+      try {
+        setIsTasksLoading(true);
+        let allTasks: Task[] = [];
+        
+        for (const board of boards) {
+          const res = await fetch(`/api/boards/${board.id}/archivedTasks`);
+          if (!res.ok) {
+            console.error(`Failed to load archived tasks for board ${board.id}`);
+            continue;
+          }
+          const boardTasks = await res.json();
+          allTasks = [...allTasks, ...boardTasks];
+        }
+        
+        setAllArchivedTasks(allTasks);
+        setIsTasksLoading(false);
+      } catch (error) {
+        console.error('Error fetching archived tasks:', error);
+        setTasksError(error instanceof Error ? error : new Error('Unknown error'));
+        setIsTasksLoading(false);
+      }
+    };
+    
+    fetchAllArchivedTasks();
+  }, [boards]);
   
   const { 
     data: archivedBoards = [],
@@ -80,18 +106,17 @@ export default function Archived() {
         description: "The task has been moved back to its category.",
       });
       
-      // Update local cache
-      queryClient.setQueryData(
-        ['/api/boards', currentBoard.id, 'archivedTasks'],
-        (oldData: Task[] | undefined) => {
-          if (!oldData) return [];
-          return oldData.filter(task => task.id !== restoredTask.id);
-        }
-      );
+      // Update our local state first
+      setAllArchivedTasks(prev => prev.filter(task => task.id !== restoredTask.id));
       
       // Invalidate the category's tasks to ensure it appears there
       queryClient.invalidateQueries({ 
         queryKey: ['/api/categories', restoredTask.categoryId, 'tasks'] 
+      });
+      
+      // Refresh archived tasks cache for all boards
+      queryClient.invalidateQueries({
+        queryKey: ['/api/boards']
       });
     },
     onError: (error) => {
@@ -115,13 +140,13 @@ export default function Archived() {
         description: "The task has been permanently deleted.",
       });
       
-      queryClient.setQueryData(
-        ['/api/boards', currentBoard.id, 'archivedTasks'],
-        (oldData: Task[] | undefined) => {
-          if (!oldData) return [];
-          return oldData.filter(task => task.id !== taskId);
-        }
-      );
+      // Update our local state first
+      setAllArchivedTasks(prev => prev.filter(task => task.id !== taskId));
+      
+      // Also update any query cache data that may exist
+      queryClient.invalidateQueries({
+        queryKey: ['/api/boards']
+      });
     },
     onError: (error) => {
       console.error('Error deleting task:', error);
@@ -278,7 +303,7 @@ export default function Archived() {
               {/* Archived Tasks Tab */}
               <TabsContent value="tasks">
                 <div className="mt-6">
-                  {archivedTasks.length === 0 ? (
+                  {allArchivedTasks.length === 0 ? (
                     <Card>
                       <CardContent className="flex flex-col items-center justify-center py-12">
                         <i className="ri-archive-line text-4xl text-gray-400 mb-4"></i>
@@ -290,7 +315,7 @@ export default function Archived() {
                     </Card>
                   ) : (
                     <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                      {archivedTasks.map((task: Task) => {
+                      {allArchivedTasks.map((task: Task) => {
                         const category = getCategoryById(task.categoryId);
                         
                         return (
