@@ -45,6 +45,20 @@ export default function Dashboard() {
 
   // Use the first board or default to ID 1
   const currentBoard: Board = boards && boards.length > 0 ? boards[0] : { id: 1, name: "Marketing Campaign Board", userId: 1 };
+  
+  // Fetch categories for the current board
+  const { 
+    data: categoriesData = [],
+    isLoading: isCategoriesLoading
+  } = useQuery({
+    queryKey: ['/api/boards', currentBoard.id, 'categories'],
+    queryFn: async () => {
+      const res = await fetch(`/api/boards/${currentBoard.id}/categories`);
+      if (!res.ok) throw new Error('Failed to load categories');
+      return res.json();
+    },
+    enabled: !!currentBoard.id
+  });
 
   // Category form
   const categoryForm = useForm<CategoryFormValues>({
@@ -240,8 +254,27 @@ export default function Dashboard() {
           }}
           onAddCategory={() => setIsCategoryModalOpen(true)}
           onSearch={handleSearch}
-          onFilter={handleFilter}
-          onSort={handleSort}
+          onFilter={(options) => {
+            console.log('Filter options:', options);
+            toast({
+              title: "Filter functionality",
+              description: "This would apply filters in a full implementation.",
+            });
+          }}
+          onSort={(option) => {
+            console.log('Sort option:', option);
+            toast({
+              title: "Sort functionality",
+              description: "This would apply sorting in a full implementation.",
+            });
+          }}
+          onCreateBoard={() => {
+            toast({
+              title: "Create Board",
+              description: "This would create a new board in a full implementation.",
+            });
+          }}
+          categories={categoriesData || []}
         />
         
         {/* Task Board */}
