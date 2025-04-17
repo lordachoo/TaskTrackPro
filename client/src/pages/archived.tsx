@@ -9,13 +9,12 @@ import Sidebar from "@/components/layout/Sidebar";
 import TopNav from "@/components/layout/TopNav";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Task, Board, Category } from "@shared/schema";
-import { useLocation } from "wouter";
 
 export default function Archived() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { toast } = useToast();
 
-  // Fetch the first board (for demo purposes)
+  // Fetch all data upfront
   const { 
     data: boards,
     isLoading: isBoardsLoading
@@ -28,10 +27,8 @@ export default function Archived() {
     }
   });
 
-  // Use the first board or default to ID 1
   const currentBoard: Board = boards && boards.length > 0 ? boards[0] : { id: 1, name: "Marketing Campaign Board", userId: 1 };
 
-  // Fetch categories for the current board
   const { 
     data: categories = [],
     isLoading: isCategoriesLoading
@@ -45,7 +42,6 @@ export default function Archived() {
     enabled: !!currentBoard.id
   });
 
-  // Fetch archived tasks
   const { 
     data: archivedTasks = [],
     isLoading: isTasksLoading,
@@ -60,7 +56,6 @@ export default function Archived() {
     enabled: !!currentBoard.id
   });
   
-  // Fetch archived boards
   const { 
     data: archivedBoards = [],
     isLoading: isArchivedBoardsLoading
@@ -73,7 +68,7 @@ export default function Archived() {
     }
   });
 
-  // Restore task mutation
+  // Mutations
   const restoreTaskMutation = useMutation({
     mutationFn: async (taskId: number) => {
       const res = await apiRequest('PUT', `/api/tasks/${taskId}/restore`, {});
@@ -85,7 +80,7 @@ export default function Archived() {
         description: "The task has been moved back to its category.",
       });
       
-      // Update local cache by removing the task from archived tasks
+      // Update local cache
       queryClient.setQueryData(
         ['/api/boards', currentBoard.id, 'archivedTasks'],
         (oldData: Task[] | undefined) => {
@@ -109,7 +104,6 @@ export default function Archived() {
     }
   });
 
-  // Delete task permanently mutation
   const deleteTaskMutation = useMutation({
     mutationFn: async (taskId: number) => {
       const res = await apiRequest('DELETE', `/api/tasks/${taskId}`, {});
@@ -121,7 +115,6 @@ export default function Archived() {
         description: "The task has been permanently deleted.",
       });
       
-      // Update local cache by removing the task from archived tasks
       queryClient.setQueryData(
         ['/api/boards', currentBoard.id, 'archivedTasks'],
         (oldData: Task[] | undefined) => {
@@ -140,6 +133,54 @@ export default function Archived() {
     }
   });
 
+  const restoreBoardMutation = useMutation({
+    mutationFn: async (boardId: number) => {
+      const res = await apiRequest('PUT', `/api/boards/${boardId}/restore`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Board restored",
+        description: "The board has been restored successfully.",
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/users', 1, 'archivedBoards'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/boards'] });
+    },
+    onError: (error) => {
+      console.error('Error restoring board:', error);
+      toast({
+        title: "Failed to restore board",
+        description: "There was an error restoring the board. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteBoardMutation = useMutation({
+    mutationFn: async (boardId: number) => {
+      const res = await apiRequest('DELETE', `/api/boards/${boardId}`, {});
+      return boardId;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Board deleted",
+        description: "The board has been permanently deleted.",
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/users', 1, 'archivedBoards'] });
+    },
+    onError: (error) => {
+      console.error('Error deleting board:', error);
+      toast({
+        title: "Failed to delete board",
+        description: "There was an error deleting the board. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Utility functions
   const getCategoryById = (categoryId: number): Category | undefined => {
     return categories.find((cat: Category) => cat.id === categoryId);
   };
@@ -155,95 +196,6 @@ export default function Archived() {
     }).format(date);
   };
 
-  const handleRestore = (taskId: number) => {
-    restoreTaskMutation.mutate(taskId);
-  };
-
-  const handleDelete = (taskId: number) => {
-    if (window.confirm("Are you sure you want to permanently delete this task? This action cannot be undone.")) {
-      deleteTaskMutation.mutate(taskId);
-    }
-  };
-
-  // Loading state
-  if (isBoardsLoading || isCategoriesLoading || isTasksLoading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-lg text-gray-600">Loading archived tasks...</div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (tasksError) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-lg text-red-600">Error loading archived tasks: {(tasksError as Error).message}</div>
-      </div>
-    );
-  }
-
-  // Restore board mutation
-  const restoreBoardMutation = useMutation({
-    mutationFn: async (boardId: number) => {
-      const res = await apiRequest('PUT', `/api/boards/${boardId}/restore`, {});
-      return res.json();
-    },
-    onSuccess: (restoredBoard) => {
-      toast({
-        title: "Board restored",
-        description: "The board has been restored successfully.",
-      });
-      
-      // Update local cache
-      queryClient.invalidateQueries({ queryKey: ['/api/users', 1, 'archivedBoards'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/boards'] });
-    },
-    onError: (error) => {
-      console.error('Error restoring board:', error);
-      toast({
-        title: "Failed to restore board",
-        description: "There was an error restoring the board. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Delete board permanently mutation
-  const deleteBoardMutation = useMutation({
-    mutationFn: async (boardId: number) => {
-      const res = await apiRequest('DELETE', `/api/boards/${boardId}`, {});
-      return boardId;
-    },
-    onSuccess: (boardId) => {
-      toast({
-        title: "Board deleted",
-        description: "The board has been permanently deleted.",
-      });
-      
-      // Update local cache
-      queryClient.invalidateQueries({ queryKey: ['/api/users', 1, 'archivedBoards'] });
-    },
-    onError: (error) => {
-      console.error('Error deleting board:', error);
-      toast({
-        title: "Failed to delete board",
-        description: "There was an error deleting the board. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
-
-  const handleRestoreBoard = (boardId: number) => {
-    restoreBoardMutation.mutate(boardId);
-  };
-
-  const handleDeleteBoard = (boardId: number) => {
-    if (window.confirm("Are you sure you want to permanently delete this board? This will also delete all categories, tasks, and custom fields associated with it. This action cannot be undone.")) {
-      deleteBoardMutation.mutate(boardId);
-    }
-  };
-
   const formatDateTime = (dateString: string | Date) => {
     if (!dateString) return "";
     
@@ -257,11 +209,40 @@ export default function Archived() {
     }).format(date);
   };
 
+  const handleRestore = (taskId: number) => {
+    restoreTaskMutation.mutate(taskId);
+  };
+
+  const handleDelete = (taskId: number) => {
+    if (window.confirm("Are you sure you want to permanently delete this task? This action cannot be undone.")) {
+      deleteTaskMutation.mutate(taskId);
+    }
+  };
+
+  const handleRestoreBoard = (boardId: number) => {
+    restoreBoardMutation.mutate(boardId);
+  };
+
+  const handleDeleteBoard = (boardId: number) => {
+    if (window.confirm("Are you sure you want to permanently delete this board? This will also delete all categories, tasks, and custom fields associated with it. This action cannot be undone.")) {
+      deleteBoardMutation.mutate(boardId);
+    }
+  };
+
   // Loading state for all data
   if (isBoardsLoading || isCategoriesLoading || isTasksLoading || isArchivedBoardsLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-lg text-gray-600">Loading archived items...</div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (tasksError) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-lg text-red-600">Error loading archived tasks: {(tasksError as Error).message}</div>
       </div>
     );
   }
@@ -280,6 +261,7 @@ export default function Archived() {
         <TopNav 
           boardName="Archived Items"
           onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          disableBoardActions={true}
         />
         
         {/* Archived Content */}
