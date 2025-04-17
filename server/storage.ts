@@ -72,10 +72,14 @@ export class MemStorage implements IStorage {
     });
 
     // Create a default board
-    const board = this.createBoard({
+    const board = {
+      id: this.boardId++,
       name: "Marketing Campaign Board",
-      userId: 1
-    });
+      userId: 1,
+      isArchived: false,
+      createdAt: new Date()
+    };
+    this.boards.set(board.id, board);
 
     // Create default categories
     this.createCategory({
@@ -151,9 +155,9 @@ export class MemStorage implements IStorage {
   }
 
   // Board methods
-  async getBoards(userId: number): Promise<Board[]> {
+  async getBoards(userId: number, showArchived: boolean = false): Promise<Board[]> {
     return Array.from(this.boards.values()).filter(
-      (board) => board.userId === userId
+      (board) => board.userId === userId && (showArchived ? board.isArchived : !board.isArchived)
     );
   }
 
@@ -163,7 +167,13 @@ export class MemStorage implements IStorage {
 
   async createBoard(board: InsertBoard): Promise<Board> {
     const id = this.boardId++;
-    const newBoard: Board = { ...board, id };
+    const now = new Date();
+    const newBoard: Board = { 
+      ...board, 
+      id, 
+      createdAt: now, 
+      isArchived: false 
+    };
     this.boards.set(id, newBoard);
     return newBoard;
   }
@@ -225,7 +235,11 @@ export class MemStorage implements IStorage {
 
   async createCustomField(customField: InsertCustomField): Promise<CustomField> {
     const id = this.customFieldId++;
-    const newCustomField: CustomField = { ...customField, id };
+    const newCustomField: CustomField = { 
+      ...customField, 
+      id,
+      options: customField.options || null
+    };
     this.customFields.set(id, newCustomField);
     return newCustomField;
   }
@@ -261,6 +275,12 @@ export class MemStorage implements IStorage {
       ...task, 
       id, 
       createdAt: now,
+      isArchived: task.isArchived ?? false,
+      description: task.description || null,
+      dueDate: task.dueDate || null,
+      priority: task.priority || null,
+      assignees: task.assignees || null,
+      customData: task.customData || {},
       comments: task.comments || 0
     };
     this.tasks.set(id, newTask);

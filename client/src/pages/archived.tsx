@@ -2,12 +2,14 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import Sidebar from "@/components/layout/Sidebar";
 import TopNav from "@/components/layout/TopNav";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Task, Board, Category } from "@shared/schema";
+import { useLocation } from "wouter";
 
 export default function Archived() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -168,6 +170,102 @@ export default function Archived() {
     );
   }
 
+  // Fetch archived boards
+  const { 
+    data: archivedBoards = [],
+    isLoading: isArchivedBoardsLoading
+  } = useQuery({
+    queryKey: ['/api/users', 1, 'archivedBoards'], // For demo purposes, always use userId 1
+    queryFn: async () => {
+      const res = await fetch('/api/users/1/archivedBoards');
+      if (!res.ok) throw new Error('Failed to load archived boards');
+      return res.json();
+    }
+  });
+
+  // Restore board mutation
+  const restoreBoardMutation = useMutation({
+    mutationFn: async (boardId: number) => {
+      const res = await apiRequest('PUT', `/api/boards/${boardId}/restore`, {});
+      return res.json();
+    },
+    onSuccess: (restoredBoard) => {
+      toast({
+        title: "Board restored",
+        description: "The board has been restored successfully.",
+      });
+      
+      // Update local cache
+      queryClient.invalidateQueries({ queryKey: ['/api/users', 1, 'archivedBoards'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/boards'] });
+    },
+    onError: (error) => {
+      console.error('Error restoring board:', error);
+      toast({
+        title: "Failed to restore board",
+        description: "There was an error restoring the board. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Delete board permanently mutation
+  const deleteBoardMutation = useMutation({
+    mutationFn: async (boardId: number) => {
+      const res = await apiRequest('DELETE', `/api/boards/${boardId}`, {});
+      return boardId;
+    },
+    onSuccess: (boardId) => {
+      toast({
+        title: "Board deleted",
+        description: "The board has been permanently deleted.",
+      });
+      
+      // Update local cache
+      queryClient.invalidateQueries({ queryKey: ['/api/users', 1, 'archivedBoards'] });
+    },
+    onError: (error) => {
+      console.error('Error deleting board:', error);
+      toast({
+        title: "Failed to delete board",
+        description: "There was an error deleting the board. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleRestoreBoard = (boardId: number) => {
+    restoreBoardMutation.mutate(boardId);
+  };
+
+  const handleDeleteBoard = (boardId: number) => {
+    if (window.confirm("Are you sure you want to permanently delete this board? This will also delete all categories, tasks, and custom fields associated with it. This action cannot be undone.")) {
+      deleteBoardMutation.mutate(boardId);
+    }
+  };
+
+  const formatDateTime = (dateString: string | Date) => {
+    if (!dateString) return "";
+    
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
+
+  // Loading state for all data
+  if (isBoardsLoading || isCategoriesLoading || isTasksLoading || isArchivedBoardsLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-lg text-gray-600">Loading archived items...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
@@ -180,92 +278,158 @@ export default function Archived() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Navigation */}
         <TopNav 
-          boardName={`${currentBoard.name} - Archived Tasks`}
+          boardName="Archived Items"
           onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
         
-        {/* Archived Tasks */}
+        {/* Archived Content */}
         <div className="flex-1 overflow-auto bg-gray-50 p-6">
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Archived Tasks</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">Archive</h2>
             
-            {archivedTasks.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <i className="ri-archive-line text-4xl text-gray-400 mb-4"></i>
-                  <p className="text-gray-500 text-center">No archived tasks found.</p>
-                  <p className="text-gray-500 text-center text-sm mt-1">
-                    When you archive tasks, they will appear here.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                {archivedTasks.map((task: Task) => {
-                  const category = getCategoryById(task.categoryId);
-                  
-                  return (
-                    <Card key={task.id} className="overflow-hidden">
-                      {category && (
-                        <div 
-                          className="h-1" 
-                          style={{ backgroundColor: category.color }}
-                        ></div>
-                      )}
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-lg">{task.title}</CardTitle>
-                          <div className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
-                            {category ? category.name : 'Unknown Category'}
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        {task.description && (
-                          <p className="text-gray-600 text-sm mb-3">{task.description}</p>
-                        )}
-                        
-                        <div className="flex flex-wrap gap-2 text-xs text-gray-500 mb-4">
-                          {task.priority && (
-                            <span className="bg-gray-100 px-2 py-1 rounded-full">
-                              Priority: {task.priority}
-                            </span>
-                          )}
-                          {task.dueDate && (
-                            <span className="bg-gray-100 px-2 py-1 rounded-full">
-                              Due: {formatDate(task.dueDate)}
-                            </span>
-                          )}
-                        </div>
-                        
-                        <div className="flex justify-end space-x-2 mt-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="text-sm"
-                            onClick={() => handleRestore(task.id)}
-                            disabled={restoreTaskMutation.isPending}
-                          >
-                            <i className="ri-arrow-go-back-line mr-1"></i>
-                            Restore
-                          </Button>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            className="text-sm"
-                            onClick={() => handleDelete(task.id)}
-                            disabled={deleteTaskMutation.isPending}
-                          >
-                            <i className="ri-delete-bin-line mr-1"></i>
-                            Delete
-                          </Button>
-                        </div>
+            <Tabs defaultValue="tasks" className="w-full mb-8">
+              <TabsList className="grid w-full max-w-md grid-cols-2">
+                <TabsTrigger value="tasks">Archived Tasks</TabsTrigger>
+                <TabsTrigger value="boards">Archived Boards</TabsTrigger>
+              </TabsList>
+              
+              {/* Archived Tasks Tab */}
+              <TabsContent value="tasks">
+                <div className="mt-6">
+                  {archivedTasks.length === 0 ? (
+                    <Card>
+                      <CardContent className="flex flex-col items-center justify-center py-12">
+                        <i className="ri-archive-line text-4xl text-gray-400 mb-4"></i>
+                        <p className="text-gray-500 text-center">No archived tasks found.</p>
+                        <p className="text-gray-500 text-center text-sm mt-1">
+                          When you archive tasks, they will appear here.
+                        </p>
                       </CardContent>
                     </Card>
-                  );
-                })}
-              </div>
-            )}
+                  ) : (
+                    <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                      {archivedTasks.map((task: Task) => {
+                        const category = getCategoryById(task.categoryId);
+                        
+                        return (
+                          <Card key={task.id} className="overflow-hidden">
+                            {category && (
+                              <div 
+                                className="h-1" 
+                                style={{ backgroundColor: category.color }}
+                              ></div>
+                            )}
+                            <CardHeader className="pb-2">
+                              <div className="flex justify-between items-start">
+                                <CardTitle className="text-lg">{task.title}</CardTitle>
+                                <div className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+                                  {category ? category.name : 'Unknown Category'}
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent>
+                              {task.description && (
+                                <p className="text-gray-600 text-sm mb-3">{task.description}</p>
+                              )}
+                              
+                              <div className="flex flex-wrap gap-2 text-xs text-gray-500 mb-4">
+                                {task.priority && (
+                                  <span className="bg-gray-100 px-2 py-1 rounded-full">
+                                    Priority: {task.priority}
+                                  </span>
+                                )}
+                                {task.dueDate && (
+                                  <span className="bg-gray-100 px-2 py-1 rounded-full">
+                                    Due: {formatDate(task.dueDate)}
+                                  </span>
+                                )}
+                              </div>
+                              
+                              <div className="flex justify-end space-x-2 mt-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="text-sm"
+                                  onClick={() => handleRestore(task.id)}
+                                  disabled={restoreTaskMutation.isPending}
+                                >
+                                  <i className="ri-arrow-go-back-line mr-1"></i>
+                                  Restore
+                                </Button>
+                                <Button 
+                                  variant="destructive" 
+                                  size="sm"
+                                  className="text-sm"
+                                  onClick={() => handleDelete(task.id)}
+                                  disabled={deleteTaskMutation.isPending}
+                                >
+                                  <i className="ri-delete-bin-line mr-1"></i>
+                                  Delete
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+              
+              {/* Archived Boards Tab */}
+              <TabsContent value="boards">
+                <div className="mt-6">
+                  {archivedBoards.length === 0 ? (
+                    <Card>
+                      <CardContent className="flex flex-col items-center justify-center py-12">
+                        <i className="ri-dashboard-3-line text-4xl text-gray-400 mb-4"></i>
+                        <p className="text-gray-500 text-center">No archived boards found.</p>
+                        <p className="text-gray-500 text-center text-sm mt-1">
+                          When you archive boards, they will appear here.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                      {archivedBoards.map((board: Board) => (
+                        <Card key={board.id}>
+                          <CardHeader>
+                            <CardTitle>{board.name}</CardTitle>
+                            <CardDescription>
+                              Archived on {formatDateTime(board.createdAt)}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex justify-end space-x-2 mt-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="text-sm"
+                                onClick={() => handleRestoreBoard(board.id)}
+                                disabled={restoreBoardMutation.isPending}
+                              >
+                                <i className="ri-arrow-go-back-line mr-1"></i>
+                                Restore
+                              </Button>
+                              <Button 
+                                variant="destructive" 
+                                size="sm"
+                                className="text-sm"
+                                onClick={() => handleDeleteBoard(board.id)}
+                                disabled={deleteBoardMutation.isPending}
+                              >
+                                <i className="ri-delete-bin-line mr-1"></i>
+                                Delete
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>

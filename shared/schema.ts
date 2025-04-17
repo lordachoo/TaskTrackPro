@@ -26,6 +26,7 @@ export const boards = pgTable("boards", {
 export const insertBoardSchema = createInsertSchema(boards).pick({
   name: true,
   userId: true,
+  isArchived: true,
 });
 
 // Define category schema
