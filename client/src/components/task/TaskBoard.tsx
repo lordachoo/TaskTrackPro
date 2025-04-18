@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { DragDropContext, DropResult } from "react-beautiful-dnd";
+import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -10,7 +10,7 @@ import CategoryForm from "./CategoryForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus } from "lucide-react";
+import { Plus, GripVertical } from "lucide-react";
 import { FilterOptions, SortOption } from "@/components/layout/ControlBar";
 import { useUsers } from "@/hooks/use-users";
 
