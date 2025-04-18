@@ -115,18 +115,30 @@ export default function TaskForm({
   ];
 
   const handleFormSubmit = (data: TaskFormValues) => {
-    // Make a clean copy of the customData to ensure we're not carrying over references
-    const cleanCustomData = { ...(data.customData || {}) };
+    // Make a deep copy of the form data to avoid reference issues
+    const formData = JSON.parse(JSON.stringify(data));
     
-    // Create a fresh copy of the entire data object
+    // Ensure customData is properly initialized and has no empty fields
+    const customData = formData.customData || {};
+    
+    // Create a clean version of customData by removing empty values
+    const cleanCustomData = Object.entries(customData)
+      .filter(([_, value]) => value !== undefined && value !== null && value !== '')
+      .reduce((obj, [key, value]) => {
+        obj[key] = value;
+        return obj;
+      }, {} as Record<string, any>);
+    
+    // Create the final formatted data with the clean customData
     const formattedData = {
-      ...data,
+      ...formData,
       customData: cleanCustomData
     };
     
-    // Log the data for debugging
+    // Log data at each step for debugging
     console.log("Raw form data:", data);
-    console.log("Formatted data being submitted:", formattedData);
+    console.log("Cleaned customData:", cleanCustomData);
+    console.log("Final data being submitted:", formattedData);
     
     // Submit the form data
     onSubmit(formattedData);
@@ -405,26 +417,36 @@ export default function TaskForm({
                       size="sm"
                       className="text-gray-400 hover:text-red-500 text-sm mt-2 flex items-center self-end"
                       onClick={() => {
-                        // Create a fresh copy of customData to ensure we're not referencing the same object
-                        const customData = { ...(form.getValues('customData') || {}) };
+                        // Get the custom field data object
+                        const currentData = { ...(form.getValues('customData') || {}) };
                         
-                        // Delete the property directly
-                        delete customData[fieldKey];
+                        // Log the current state
+                        console.log('Current customData:', currentData);
+                        console.log(`Removing field: ${fieldKey}`);
                         
-                        // Set the new customData object
-                        form.setValue('customData', customData);
+                        // Remove the field by creating a new object without that field
+                        const newCustomData = Object.entries(currentData)
+                          .filter(([key]) => key !== fieldKey)
+                          .reduce((obj, [key, value]) => {
+                            obj[key] = value;
+                            return obj;
+                          }, {} as Record<string, any>);
                         
-                        // Force form to update
-                        form.trigger('customData');
+                        // Reset the entire customData field with our filtered object
+                        form.setValue('customData', newCustomData, { 
+                          shouldDirty: true,
+                          shouldTouch: true,
+                          shouldValidate: true
+                        });
                         
-                        // Log for debugging
-                        console.log(`Removed custom field: ${fieldKey}`, customData);
-                        console.log('Full form values:', form.getValues());
+                        // Log the changes
+                        console.log('Updated customData:', form.getValues('customData'));
+                        console.log('Full form state after removal:', form.getValues());
                         
-                        // Show toast notification
+                        // Show a notification
                         toast({
                           title: "Field removed",
-                          description: `${fieldKey} has been removed from this task.`,
+                          description: `${field.name} has been removed from this task.`,
                           duration: 2000
                         });
                       }}
