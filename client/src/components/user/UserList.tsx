@@ -171,7 +171,7 @@ export default function UserList() {
                   <TableCell>
                     <div 
                       className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold"
-                      style={{ backgroundColor: user.avatarColor }}
+                      style={{ backgroundColor: user.avatarColor || '#6366f1' }}
                     >
                       {user.fullName.substring(0, 1).toUpperCase()}
                     </div>

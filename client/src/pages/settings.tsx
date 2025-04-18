@@ -208,6 +208,7 @@ export default function Settings() {
                 <TabsTrigger value="fields">Custom Fields</TabsTrigger>
                 <TabsTrigger value="display">Display Settings</TabsTrigger>
                 <TabsTrigger value="account">Account</TabsTrigger>
+                <TabsTrigger value="users">User Management</TabsTrigger>
               </TabsList>
               
               <TabsContent value="fields">
@@ -449,7 +450,7 @@ export default function Settings() {
                   <CardHeader>
                     <CardTitle>Account Settings</CardTitle>
                     <CardDescription>
-                      Manage your account information.
+                      Manage your account information
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -493,6 +494,20 @@ export default function Settings() {
                         Save Changes
                       </Button>
                     </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="users">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>User Management</CardTitle>
+                    <CardDescription>
+                      Add, edit, and manage users for your organization
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <UserList />
                   </CardContent>
                 </Card>
               </TabsContent>
