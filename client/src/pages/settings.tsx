@@ -365,7 +365,6 @@ export default function Settings() {
               
               <TabsContent value="users">
                 {/* Registration Settings */}
-                {/* Registration Settings */}
                 <RegistrationSetting />
                 
                 {/* User List */}

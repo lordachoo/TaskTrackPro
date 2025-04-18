@@ -101,6 +101,9 @@ export class MemStorage implements IStorage {
       isActive: true
     };
     this.createUser(demoUser);
+    
+    // Create default system settings
+    this.updateSystemSetting('allow_registrations', 'true');
 
     // Create a default board
     const board = {

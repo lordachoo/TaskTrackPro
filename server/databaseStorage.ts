@@ -13,6 +13,26 @@ import { and, eq, asc } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 export class DatabaseStorage implements IStorage {
+  constructor() {
+    // Initialize system settings
+    this.initializeSystemSettings();
+  }
+  
+  // Initialize required system settings
+  async initializeSystemSettings() {
+    try {
+      // Check if allow_registrations setting exists
+      const registerSetting = await this.getSystemSetting('allow_registrations');
+      if (!registerSetting) {
+        // Create initial setting if it doesn't exist
+        await this.updateSystemSetting('allow_registrations', 'true');
+        console.log('Initialized system setting: allow_registrations = true');
+      }
+    } catch (error) {
+      console.error('Error initializing system settings:', error);
+    }
+  }
+  
   // User methods
   async getAllUsers(): Promise<User[]> {
     console.log("Getting all users from database");
