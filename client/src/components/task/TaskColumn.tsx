@@ -90,7 +90,7 @@ export default function TaskColumn({
       <Droppable droppableId={`category-${category.id}`} type="task">
         {(provided) => (
           <CardContent 
-            className="p-2 max-h-[calc(100vh-220px)] overflow-y-auto"
+            className="p-2 max-h-[calc(100vh-220px)] min-h-[200px] overflow-y-auto"
             ref={provided.innerRef}
             {...provided.droppableProps}
           >

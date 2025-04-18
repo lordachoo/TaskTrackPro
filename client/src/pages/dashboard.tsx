@@ -428,59 +428,65 @@ export default function Dashboard() {
       />
       
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Navigation */}
-        <TopNav 
-          boardName={currentBoard.name} 
-          onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          onBoardNameChange={handleBoardNameChange}
-          onBoardArchive={handleBoardArchive}
-          onBoardDelete={handleBoardDelete}
-          allBoards={boards}
-          activeBoardId={activeBoardId}
-          onBoardSelect={handleBoardSelect}
-          boardSelectorOpen={boardSelectorOpen}
-          onBoardSelectorToggle={() => setBoardSelectorOpen(!boardSelectorOpen)}
-        />
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        {/* Top Navigation - Fixed height */}
+        <div className="flex-shrink-0">
+          <TopNav 
+            boardName={currentBoard.name} 
+            onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            onBoardNameChange={handleBoardNameChange}
+            onBoardArchive={handleBoardArchive}
+            onBoardDelete={handleBoardDelete}
+            allBoards={boards}
+            activeBoardId={activeBoardId}
+            onBoardSelect={handleBoardSelect}
+            boardSelectorOpen={boardSelectorOpen}
+            onBoardSelectorToggle={() => setBoardSelectorOpen(!boardSelectorOpen)}
+          />
+        </div>
         
-        {/* Control Bar */}
-        <ControlBar 
-          onCreateTask={() => {
-            // This will be handled by the TaskBoard component
-            const createTaskButton = document.querySelector('.task-column:first-child button.flex.items-center.justify-center');
-            if (createTaskButton) {
-              (createTaskButton as HTMLElement).click();
-            }
-          }}
-          onAddCategory={() => setIsCategoryModalOpen(true)}
-          onSearch={handleSearch}
-          onFilter={(options) => {
-            console.log('Filter options:', options);
-            // Store the filter options in local storage
-            localStorage.setItem('taskFilterOptions', JSON.stringify(options));
-            // Apply filter by dispatching a custom event that TaskBoard will listen for
-            window.dispatchEvent(new CustomEvent('applyTaskFilters', { 
-              detail: options 
-            }));
-          }}
-          onSort={(option) => {
-            console.log('Sort option:', option);
-            // Store the sort options in local storage
-            localStorage.setItem('taskSortOption', JSON.stringify(option));
-            // Apply sort by dispatching a custom event that TaskBoard will listen for
-            window.dispatchEvent(new CustomEvent('applyTaskSort', { 
-              detail: option 
-            }));
-          }}
-          onCreateBoard={handleCreateBoard}
-          categories={categoriesData || []}
-          currentBoardId={currentBoard.id}
-        />
+        {/* Control Bar - Fixed height */}
+        <div className="flex-shrink-0">
+          <ControlBar 
+            onCreateTask={() => {
+              // This will be handled by the TaskBoard component
+              const createTaskButton = document.querySelector('.task-column:first-child button.flex.items-center.justify-center');
+              if (createTaskButton) {
+                (createTaskButton as HTMLElement).click();
+              }
+            }}
+            onAddCategory={() => setIsCategoryModalOpen(true)}
+            onSearch={handleSearch}
+            onFilter={(options) => {
+              console.log('Filter options:', options);
+              // Store the filter options in local storage
+              localStorage.setItem('taskFilterOptions', JSON.stringify(options));
+              // Apply filter by dispatching a custom event that TaskBoard will listen for
+              window.dispatchEvent(new CustomEvent('applyTaskFilters', { 
+                detail: options 
+              }));
+            }}
+            onSort={(option) => {
+              console.log('Sort option:', option);
+              // Store the sort options in local storage
+              localStorage.setItem('taskSortOption', JSON.stringify(option));
+              // Apply sort by dispatching a custom event that TaskBoard will listen for
+              window.dispatchEvent(new CustomEvent('applyTaskSort', { 
+                detail: option 
+              }));
+            }}
+            onCreateBoard={handleCreateBoard}
+            categories={categoriesData || []}
+            currentBoardId={currentBoard.id}
+          />
+        </div>
         
-        {/* Task Board */}
-        <TaskBoard 
-          boardId={currentBoard.id}
-        />
+        {/* Task Board - Flexible height that takes remaining space */}
+        <div className="flex-1 min-h-0">
+          <TaskBoard 
+            boardId={currentBoard.id}
+          />
+        </div>
       </div>
       
       {/* Category Modal */}

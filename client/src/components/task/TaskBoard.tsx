@@ -784,7 +784,7 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-50 p-4">
+    <div className="flex-1 flex flex-col h-full bg-gray-50 p-4">
       {/* Board info and custom fields summary */}
       {currentBoard && customFields && (
         <div className="flex-shrink-0 mb-4 px-3 py-2 bg-white rounded-md border border-gray-200 shadow-sm">
@@ -821,7 +821,7 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
           <Droppable droppableId="board-columns" direction="horizontal" type="column">
             {(provided) => (
               <div 
-                className="board-container flex space-x-4 pb-4 min-h-[60vh]"
+                className="flex space-x-4 pb-4"
                 ref={provided.innerRef}
                 {...provided.droppableProps}
               >
