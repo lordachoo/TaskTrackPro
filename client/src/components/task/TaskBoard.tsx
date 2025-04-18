@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, GripVertical } from "lucide-react";
-import { FilterOptions, SortOption } from "@/components/layout/ControlBar";
+import { FilterOptions, SortOption, SearchOptions } from "@/components/layout/ControlBar";
 import { useUsers } from "@/hooks/use-users";
 
 interface TaskBoardProps {
@@ -84,7 +84,7 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
   // State for filtered tasks
   const [filteredCategoryTasks, setFilteredCategoryTasks] = useState<Record<number, Task[]>>({});
   
-  // State for filter and sort options
+  // State for filter, sort, and search options
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     priorities: [],
     categories: [],
@@ -96,6 +96,12 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
   const [sortOption, setSortOption] = useState<SortOption>({
     field: 'dueDate',
     direction: 'asc'
+  });
+  
+  const [searchOptions, setSearchOptions] = useState<SearchOptions>({
+    query: "",
+    searchAllBoards: false,
+    searchInDescription: false
   });
   
   const { users } = useUsers();
@@ -156,16 +162,22 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
       setSortOption(e.detail);
     };
     
+    const handleSearchChange = (e: CustomEvent<SearchOptions>) => {
+      setSearchOptions(e.detail);
+    };
+    
     window.addEventListener('applyTaskFilters', handleFilterChange as EventListener);
     window.addEventListener('applyTaskSort', handleSortChange as EventListener);
+    window.addEventListener('applyTaskSearch', handleSearchChange as EventListener);
     
     return () => {
       window.removeEventListener('applyTaskFilters', handleFilterChange as EventListener);
       window.removeEventListener('applyTaskSort', handleSortChange as EventListener);
+      window.removeEventListener('applyTaskSearch', handleSearchChange as EventListener);
     };
   }, []);
   
-  // Apply filtering and sorting to tasks
+  // Apply filtering, searching, and sorting to tasks
   useEffect(() => {
     if (!categoryTasks || Object.keys(categoryTasks).length === 0) {
       setFilteredCategoryTasks({});
@@ -174,12 +186,35 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
     
     const newFilteredTasks: Record<number, Task[]> = {};
     
+    // If we're searching across all boards and we need to fetch other board tasks
+    if (searchOptions.query && searchOptions.searchAllBoards && boardId) {
+      // For client-side only, we're working with the current board's tasks
+      // In a real application, we would fetch all boards' tasks or create a server endpoint for cross-board search
+      console.log("Would search across all boards in a real implementation");
+    }
+    
     // Apply filters for each category
     Object.entries(categoryTasks).forEach(([categoryId, tasks]) => {
       const categoryIdNum = Number(categoryId);
       
       // Start with all tasks
       let filteredTasks = [...tasks];
+      
+      // Apply search filter if query exists
+      if (searchOptions.query.trim()) {
+        const query = searchOptions.query.toLowerCase().trim();
+        filteredTasks = filteredTasks.filter(task => {
+          const titleMatch = task.title.toLowerCase().includes(query);
+          
+          // If not searching in descriptions or title already matches, return true/false based on title match
+          if (!searchOptions.searchInDescription || titleMatch) {
+            return titleMatch;
+          }
+          
+          // Search in description if option is enabled
+          return task.description && task.description.toLowerCase().includes(query);
+        });
+      }
       
       // Apply priority filter
       if (filterOptions.priorities.length > 0) {
@@ -287,7 +322,7 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
     });
     
     setFilteredCategoryTasks(newFilteredTasks);
-  }, [categoryTasks, filterOptions, sortOption]);
+  }, [categoryTasks, filterOptions, sortOption, searchOptions, boardId]);
 
   // Task mutations
   const createTaskMutation = useMutation({
