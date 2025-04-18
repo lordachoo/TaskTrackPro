@@ -95,9 +95,29 @@ export default function UserList() {
     },
   });
 
+  // Fetch latest user data before editing
+  const fetchUserQuery = useMutation({
+    mutationFn: async (userId: number) => {
+      const res = await apiRequest("GET", `/api/users/${userId}`);
+      return await res.json();
+    },
+    onSuccess: (userData) => {
+      console.log("Fetched latest user data for editing:", userData);
+      setSelectedUser(userData);
+      setIsEditOpen(true);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to fetch user data",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEdit = (user: User) => {
-    setSelectedUser(user);
-    setIsEditOpen(true);
+    // Fetch the latest user data instead of using potentially outdated data from the list
+    fetchUserQuery.mutate(user.id);
   };
 
   const handleDelete = (user: User) => {
