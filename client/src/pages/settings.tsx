@@ -347,10 +347,12 @@ export default function Settings() {
                         </p>
                       </div>
                     )}
-                    {isAddingField && (
+                    {(isAddingField || isEditingField) && (
                       <div className="mb-8 p-4 border rounded-md bg-gray-50">
-                        <h3 className="text-lg font-medium mb-4">Add New Custom Field</h3>
-                        <form onSubmit={handleAddField} className="space-y-4">
+                        <h3 className="text-lg font-medium mb-4">
+                          {isEditingField ? `Edit Custom Field: ${selectedField?.name}` : 'Add New Custom Field'}
+                        </h3>
+                        <form onSubmit={isEditingField ? handleEditField : handleAddField} className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -414,6 +416,8 @@ export default function Settings() {
                               variant="outline" 
                               onClick={() => {
                                 setIsAddingField(false);
+                                setIsEditingField(false);
+                                setSelectedField(null);
                                 setNewField({ name: '', type: '', options: null, boardId: currentBoard.id });
                               }}
                             >
@@ -421,9 +425,16 @@ export default function Settings() {
                             </Button>
                             <Button 
                               type="submit"
-                              disabled={addFieldMutation.isPending || !newField.name || !newField.type}
+                              disabled={
+                                (isEditingField ? updateFieldMutation.isPending : addFieldMutation.isPending) || 
+                                !newField.name || 
+                                !newField.type
+                              }
                             >
-                              {addFieldMutation.isPending ? 'Adding...' : 'Add Field'}
+                              {isEditingField 
+                                ? (updateFieldMutation.isPending ? 'Saving...' : 'Save Changes') 
+                                : (addFieldMutation.isPending ? 'Adding...' : 'Add Field')
+                              }
                             </Button>
                           </div>
                         </form>
