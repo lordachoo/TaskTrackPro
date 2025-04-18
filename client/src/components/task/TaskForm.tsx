@@ -49,6 +49,7 @@ export default function TaskForm({
   onCancel
 }: TaskFormProps) {
   const [showCustomFieldForm, setShowCustomFieldForm] = useState(false);
+  const [forceRender, setForceRender] = useState(0);
   
   // Import toast for notifications
   const { toast } = useToast();
@@ -298,13 +299,16 @@ export default function TaskForm({
             </Button>
           </div>
           
-          {/* Render custom fields */}
+          {/* Render custom fields - limit height and make scrollable */}
           {customFields.length > 0 && (
-            <div className="space-y-3">
-              {customFields.map((field: CustomField) => {
+            <div className="space-y-3 max-h-60 overflow-y-auto p-1">
+              {/* Force component to re-render when forceRender changes */}
+              {forceRender >= 0 && customFields.map((field: CustomField) => {
                 const fieldKey = field.name;
                 const fieldValue = form.watch('customData')?.[fieldKey] || '';
                 
+                // Only show the field if it has a value in customData or it's new
+                // This is what makes fields disappear when they're removed
                 return (
                   <div key={field.id} className="custom-field grid grid-cols-1 bg-gray-50 p-3 rounded-md border border-gray-200">
                     <FormLabel>{field.name}</FormLabel>
@@ -437,6 +441,9 @@ export default function TaskForm({
                           description: `${field.name} has been removed from this task.`,
                           duration: 2000
                         });
+                        
+                        // Force the component to re-render
+                        forceUpdate({});
                       }}
                     >
                       <svg
