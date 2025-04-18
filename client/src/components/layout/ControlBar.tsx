@@ -28,6 +28,12 @@ export interface FilterOptions {
   hideCompleted: boolean;
 }
 
+export interface SearchOptions {
+  query: string;
+  searchAllBoards: boolean;
+  searchInDescription: boolean;
+}
+
 export interface SortOption {
   field: 'dueDate' | 'priority' | 'title' | 'createdAt';
   direction: 'asc' | 'desc';
@@ -36,11 +42,12 @@ export interface SortOption {
 interface ControlBarProps {
   onCreateTask: () => void;
   onAddCategory: () => void;
-  onSearch: (query: string) => void;
+  onSearch: (options: SearchOptions) => void;
   onFilter: (options: FilterOptions) => void;
   onSort: (option: SortOption) => void;
   onCreateBoard: () => void;
   categories: { id: number; name: string; color: string }[];
+  currentBoardId?: number;
 }
 
 export default function ControlBar({
@@ -50,9 +57,15 @@ export default function ControlBar({
   onFilter,
   onSort,
   onCreateBoard,
-  categories = []
+  categories = [],
+  currentBoardId
 }: ControlBarProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+  // Search state
+  const [searchOptions, setSearchOptions] = useState<SearchOptions>({
+    query: "",
+    searchAllBoards: false,
+    searchInDescription: false
+  });
   
   // Filter state
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
@@ -70,8 +83,21 @@ export default function ControlBar({
   });
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-    onSearch(e.target.value);
+    const newSearchOptions = {
+      ...searchOptions,
+      query: e.target.value
+    };
+    setSearchOptions(newSearchOptions);
+    onSearch(newSearchOptions);
+  };
+  
+  const handleSearchOptionChange = (option: keyof Omit<SearchOptions, 'query'>, value: boolean) => {
+    const newSearchOptions = {
+      ...searchOptions,
+      [option]: value
+    };
+    setSearchOptions(newSearchOptions);
+    onSearch(newSearchOptions);
   };
 
   const handleFilterChange = (key: keyof FilterOptions, value: any) => {
@@ -380,16 +406,80 @@ export default function ControlBar({
         </Popover>
       </div>
       
-      <div className="w-full md:w-auto order-2 md:order-3">
+      <div className="w-full md:w-auto order-2 md:order-3 relative">
         <div className="relative">
           <Input
             type="text"
             placeholder="Search tasks..."
-            value={searchQuery}
+            value={searchOptions.query}
             onChange={handleSearchChange}
             className="w-full md:w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
           <i className="ri-search-line absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+          
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-1 hover:bg-gray-100 rounded-md"
+              >
+                <i className="ri-settings-3-line text-gray-500"></i>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 p-4">
+              <div className="space-y-4">
+                <h4 className="font-medium">Search Options</h4>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="search-all-boards" 
+                      checked={searchOptions.searchAllBoards}
+                      onCheckedChange={(checked) => 
+                        handleSearchOptionChange('searchAllBoards', checked === true)
+                      }
+                    />
+                    <label 
+                      htmlFor="search-all-boards"
+                      className="text-sm"
+                    >
+                      Search across all boards
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="search-in-description" 
+                      checked={searchOptions.searchInDescription}
+                      onCheckedChange={(checked) => 
+                        handleSearchOptionChange('searchInDescription', checked === true)
+                      }
+                    />
+                    <label 
+                      htmlFor="search-in-description"
+                      className="text-sm"
+                    >
+                      Include task descriptions
+                    </label>
+                  </div>
+                  
+                  <div className="pt-2">
+                    <div className="text-xs text-gray-500">
+                      {searchOptions.searchAllBoards 
+                        ? "Searching in all boards" 
+                        : "Searching in current board only"}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {searchOptions.searchInDescription 
+                        ? "Searching in titles and descriptions" 
+                        : "Searching in titles only"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
     </div>
