@@ -877,21 +877,7 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
                 ))}
                 {provided.placeholder}
                 
-                {/* Add Column Button */}
-                <div className="flex items-center justify-center min-w-[120px]">
-                  <Button 
-                    variant="ghost"
-                    className="h-12 px-4 border border-dashed border-gray-300 rounded-md text-gray-500 hover:text-primary hover:border-primary flex items-center justify-center"
-                    onClick={() => {
-                      setSelectedCategory(null);
-                      setIsEditMode(false);
-                      setIsCategoryModalOpen(true);
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    <span>Add Column</span>
-                  </Button>
-                </div>
+                {/* "Add Column" button removed as requested - users can add new categories via the "Add New" dropdown */}
               </div>
             )}
           </Droppable>

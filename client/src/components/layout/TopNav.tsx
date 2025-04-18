@@ -88,9 +88,11 @@ export default function TopNav({
             </button>
             <div className="md:hidden flex flex-col">
               <span className="font-bold text-lg text-primary">TaskFlow</span>
-              <span className="text-gray-400 text-xs mt-[-5px]">v1.0</span>
+              <span className="text-gray-400 text-xs mt-[-5px]">v1.1</span>
             </div>
             <div className="hidden md:flex items-center">
+              {/* Version number for desktop view */}
+              <div className="mr-4 text-gray-400 text-xs">v1.1</div>
               {/* Board Selector Dropdown */}
               {allBoards && allBoards.length > 1 && onBoardSelect && (
                 <DropdownMenu open={boardSelectorOpen} onOpenChange={onBoardSelectorToggle}>
