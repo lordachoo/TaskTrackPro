@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { processCustomData } from "./CustomDataHandler";
+import MDEditor from '@uiw/react-md-editor';
 
 interface TaskFormProps {
   boardId: number;

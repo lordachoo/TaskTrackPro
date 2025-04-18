@@ -4,6 +4,8 @@ import { ReactNode, useState, useRef, useEffect } from "react";
 import { queryClient } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
 import { Archive, Trash2, MoreVertical, Calendar, MessageSquare, GripVertical } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface TaskCardProps {
   task: Task;
@@ -234,8 +236,10 @@ export default function TaskCard({
             </div>
             
             {description && (
-              <div className="text-sm text-gray-600 mb-3">
-                {description}
+              <div className="text-sm text-gray-600 mb-3 prose prose-sm max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {description}
+                </ReactMarkdown>
               </div>
             )}
             
