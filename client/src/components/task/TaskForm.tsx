@@ -49,6 +49,7 @@ export default function TaskForm({
   onCancel
 }: TaskFormProps) {
   const [showCustomFieldForm, setShowCustomFieldForm] = useState(false);
+  // State to trigger re-renders when custom fields are removed
   const [forceRender, setForceRender] = useState(0);
   
   // Import toast for notifications
@@ -136,6 +137,17 @@ export default function TaskForm({
     
     // Submit the form data
     onSubmit(formattedData);
+  };
+
+  // Function to check if a custom field should be displayed
+  const shouldShowCustomField = (fieldName: string): boolean => {
+    const customData = form.getValues('customData') || {};
+    
+    // For empty customData, show all fields
+    if (Object.keys(customData).length === 0) return true;
+    
+    // Otherwise only show fields that exist in customData
+    return fieldName in customData;
   };
 
   return (
@@ -299,16 +311,21 @@ export default function TaskForm({
             </Button>
           </div>
           
-          {/* Render custom fields - limit height and make scrollable */}
+          {/* Render custom fields - with scrollable container */}
           {customFields.length > 0 && (
             <div className="space-y-3 max-h-60 overflow-y-auto p-1">
-              {/* Force component to re-render when forceRender changes */}
-              {forceRender >= 0 && customFields.map((field: CustomField) => {
-                const fieldKey = field.name;
-                const fieldValue = form.watch('customData')?.[fieldKey] || '';
+              {/* Key off forceRender to ensure the component updates when fields are removed */}
+              {forceRender >= 0 && customFields.map((field) => {
+                const fieldName = field.name;
                 
-                // Only show the field if it has a value in customData or it's new
-                // This is what makes fields disappear when they're removed
+                // Skip rendering this field if it should be hidden
+                if (!shouldShowCustomField(fieldName)) {
+                  return null;
+                }
+                
+                // Get the field value from the form state
+                const fieldValue = form.watch(`customData.${fieldName}`) || '';
+                
                 return (
                   <div key={field.id} className="custom-field grid grid-cols-1 bg-gray-50 p-3 rounded-md border border-gray-200">
                     <FormLabel>{field.name}</FormLabel>
@@ -318,9 +335,8 @@ export default function TaskForm({
                         value={fieldValue}
                         onChange={(e) => {
                           const customData = { ...(form.getValues('customData') || {}) };
-                          customData[fieldKey] = e.target.value; 
+                          customData[fieldName] = e.target.value; 
                           form.setValue('customData', customData);
-                          console.log('Updated customData:', form.getValues('customData'));
                         }}
                       />
                     )}
@@ -332,7 +348,7 @@ export default function TaskForm({
                           const customData = form.getValues('customData') || {};
                           form.setValue('customData', {
                             ...customData,
-                            [fieldKey]: e.target.value
+                            [fieldName]: e.target.value
                           });
                         }}
                       />
@@ -345,7 +361,7 @@ export default function TaskForm({
                           const customData = form.getValues('customData') || {};
                           form.setValue('customData', {
                             ...customData,
-                            [fieldKey]: e.target.value
+                            [fieldName]: e.target.value
                           });
                         }}
                       />
@@ -357,7 +373,7 @@ export default function TaskForm({
                           const customData = form.getValues('customData') || {};
                           form.setValue('customData', {
                             ...customData,
-                            [fieldKey]: value
+                            [fieldName]: value
                           });
                         }}
                       >
@@ -382,7 +398,7 @@ export default function TaskForm({
                             const customData = form.getValues('customData') || {};
                             form.setValue('customData', {
                               ...customData,
-                              [fieldKey]: checked
+                              [fieldName]: checked
                             });
                           }}
                         />
@@ -403,7 +419,7 @@ export default function TaskForm({
                           const customData = form.getValues('customData') || {};
                           form.setValue('customData', {
                             ...customData,
-                            [fieldKey]: e.target.value
+                            [fieldName]: e.target.value
                           });
                         }}
                       />
@@ -417,23 +433,16 @@ export default function TaskForm({
                         // Get the current custom data object
                         const currentData = form.getValues('customData') || {};
                         
-                        // Log the current state
-                        console.log('Current customData:', currentData);
-                        console.log(`Removing field: ${fieldKey}`);
-                        
                         // Use the removeCustomDataField utility to remove the field
-                        const newCustomData = removeCustomDataField(currentData, fieldKey);
+                        const newCustomData = removeCustomDataField(currentData, fieldName);
                         
                         // Reset the entire customData field with our cleaned object
                         form.setValue('customData', newCustomData, { 
-                          shouldDirty: true,
-                          shouldTouch: true,
-                          shouldValidate: true
+                          shouldDirty: true
                         });
                         
-                        // Log the changes
-                        console.log('Updated customData:', form.getValues('customData'));
-                        console.log('Full form state after removal:', form.getValues());
+                        // Force the component to re-render to hide the removed field
+                        setForceRender(prev => prev + 1);
                         
                         // Show a notification
                         toast({
@@ -441,9 +450,6 @@ export default function TaskForm({
                           description: `${field.name} has been removed from this task.`,
                           duration: 2000
                         });
-                        
-                        // Force the component to re-render
-                        forceUpdate({});
                       }}
                     >
                       <svg
