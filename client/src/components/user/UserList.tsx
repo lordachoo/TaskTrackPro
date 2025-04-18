@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import UserForm from "./UserForm";
-import { Pencil, Trash2, UserPlus, User as UserIcon } from "lucide-react";
+import { Pencil, Trash2, UserPlus, User as UserIcon, RefreshCw } from "lucide-react";
 
 export default function UserList() {
   const { toast } = useToast();
@@ -21,8 +21,15 @@ export default function UserList() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // Fetch users
-  const { data: users = [], isLoading, error } = useQuery<User[]>({
+  const { data: users = [], isLoading, error, refetch } = useQuery<User[]>({
     queryKey: ["/api/users"],
+    // Disable caching to always fetch fresh data
+    staleTime: 0,
+    // Don't cache the data at all
+    gcTime: 0,
+    // Always refetch when component mounts or window regains focus
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   // Create user mutation
@@ -156,7 +163,19 @@ export default function UserList() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">User Management</h3>
+        <div className="flex items-center gap-3">
+          <h3 className="text-lg font-medium">User Management</h3>
+          <Button 
+            onClick={() => refetch()}
+            variant="outline"
+            size="sm"
+            title="Refresh user list"
+            className="flex items-center gap-1"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        </div>
         <Button 
           onClick={() => setIsCreateOpen(true)}
           className="flex items-center gap-1"
