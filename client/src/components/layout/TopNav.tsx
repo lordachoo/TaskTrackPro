@@ -86,7 +86,10 @@ export default function TopNav({
             >
               <i className="ri-menu-line text-xl"></i>
             </button>
-            <div className="md:hidden font-bold text-lg text-primary">TaskFlow</div>
+            <div className="md:hidden flex flex-col">
+              <span className="font-bold text-lg text-primary">TaskFlow</span>
+              <span className="text-gray-400 text-xs mt-[-5px]">v1.0</span>
+            </div>
             <div className="hidden md:flex items-center">
               {/* Board Selector Dropdown */}
               {allBoards && allBoards.length > 1 && onBoardSelect && (
