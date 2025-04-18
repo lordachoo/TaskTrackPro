@@ -6,9 +6,11 @@ import { queryClient } from "@/lib/queryClient";
 import { Task, Category, Board } from "@shared/schema";
 import TaskColumn from "./TaskColumn";
 import TaskForm from "./TaskForm";
+import CategoryForm from "./CategoryForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { Plus } from "lucide-react";
 
 interface TaskBoardProps {
   boardId: number;
@@ -19,6 +21,7 @@ export default function TaskBoard({ boardId, onAddCategory }: TaskBoardProps) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const { toast } = useToast();
 
@@ -298,6 +301,84 @@ export default function TaskBoard({ boardId, onAddCategory }: TaskBoardProps) {
     setSelectedCategory(category || null);
   };
 
+  // Category mutations
+  const updateCategoryMutation = useMutation({
+    mutationFn: async (updatedCategory: Partial<Category> & { id: number }) => {
+      const { id, ...categoryData } = updatedCategory;
+      const res = await apiRequest('PUT', `/api/categories/${id}`, categoryData);
+      return res.json();
+    },
+    onSuccess: () => {
+      // Invalidate categories query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['/api/boards', boardId, 'categories'] });
+      
+      toast({
+        title: "Category updated",
+        description: "Category has been updated successfully.",
+      });
+      
+      setIsCategoryModalOpen(false);
+    },
+    onError: (error) => {
+      console.error('Error updating category:', error);
+      toast({
+        title: "Failed to update category",
+        description: "There was an error updating the category. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (categoryId: number) => {
+      const res = await apiRequest('DELETE', `/api/categories/${categoryId}`, {});
+      return { categoryId };
+    },
+    onSuccess: () => {
+      // Invalidate categories query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['/api/boards', boardId, 'categories'] });
+      
+      toast({
+        title: "Category deleted",
+        description: "Category has been deleted successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting category:', error);
+      toast({
+        title: "Failed to delete category",
+        description: "There was an error deleting the category. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Handle editing a category
+  const handleEditCategory = (category: Category) => {
+    setSelectedCategory(category);
+    setIsEditMode(true);
+    setIsCategoryModalOpen(true);
+  };
+  
+  // Handle deleting a category
+  const handleDeleteCategory = (categoryId: number) => {
+    deleteCategoryMutation.mutate(categoryId);
+  };
+  
+  // Handle submitting the category form
+  const handleCategorySubmit = (categoryData: Partial<Category> & { boardId: number }) => {
+    if (isEditMode && selectedCategory) {
+      updateCategoryMutation.mutate({
+        ...categoryData,
+        id: selectedCategory.id
+      });
+    } else {
+      // If it's a new category, use the parent component's onAddCategory handler
+      // which should be connected to a createCategory mutation
+      onAddCategory();
+    }
+  };
+
   // Handle submitting the task form
   const handleTaskSubmit = (taskData: Partial<Task>) => {
     // Log the task data to debug custom fields
@@ -356,8 +437,8 @@ export default function TaskBoard({ boardId, onAddCategory }: TaskBoardProps) {
               onEditTask={handleEditTask}
               onArchiveTask={(taskId) => archiveTaskMutation.mutate(taskId)}
               onDeleteTask={(taskId) => deleteTaskMutation.mutate(taskId)}
-              onEditCategory={() => {}}
-              onDeleteCategory={() => {}}
+              onEditCategory={handleEditCategory}
+              onDeleteCategory={handleDeleteCategory}
             />
           ))}
           
@@ -366,9 +447,13 @@ export default function TaskBoard({ boardId, onAddCategory }: TaskBoardProps) {
             <Button 
               variant="ghost"
               className="h-12 px-4 border border-dashed border-gray-300 rounded-md text-gray-500 hover:text-primary hover:border-primary flex items-center justify-center"
-              onClick={onAddCategory}
+              onClick={() => {
+                setSelectedCategory(null);
+                setIsEditMode(false);
+                setIsCategoryModalOpen(true);
+              }}
             >
-              <i className="ri-add-line mr-1"></i>
+              <Plus className="h-4 w-4 mr-1" />
               <span>Add Column</span>
             </Button>
           </div>
@@ -386,6 +471,19 @@ export default function TaskBoard({ boardId, onAddCategory }: TaskBoardProps) {
             isEdit={isEditMode}
             onSubmit={handleTaskSubmit}
             onCancel={() => setIsTaskModalOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Category Modal */}
+      <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <CategoryForm
+            boardId={boardId}
+            initialData={selectedCategory}
+            isEdit={isEditMode}
+            onSubmit={handleCategorySubmit}
+            onCancel={() => setIsCategoryModalOpen(false)}
           />
         </DialogContent>
       </Dialog>
