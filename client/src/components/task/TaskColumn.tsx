@@ -2,6 +2,8 @@ import { Droppable } from "react-beautiful-dnd";
 import TaskCard from "./TaskCard";
 import { Task, Category } from "@shared/schema";
 import { Button } from "@/components/ui/button";
+import { useState, useRef, useEffect } from "react";
+import { MoreHorizontal, Edit, Trash2, Plus } from "lucide-react";
 
 interface TaskColumnProps {
   category: Category;
@@ -26,6 +28,28 @@ export default function TaskColumn({
   onEditCategory,
   onDeleteCategory
 }: TaskColumnProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    
+    // Add event listener when menu is open
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    
+    // Cleanup
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuOpen]);
+
   const handleDeleteCategory = () => {
     if (tasks.length > 0) {
       alert("Cannot delete a category that contains tasks. Move or delete the tasks first.");
@@ -35,10 +59,17 @@ export default function TaskColumn({
     if (window.confirm("Are you sure you want to delete this category?")) {
       onDeleteCategory(category.id);
     }
+    setMenuOpen(false);
   };
   
   const handleEditCategory = () => {
     onEditCategory(category);
+    setMenuOpen(false);
+  };
+  
+  const toggleMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMenuOpen(!menuOpen);
   };
   
   return (
@@ -54,28 +85,32 @@ export default function TaskColumn({
             {tasks.length}
           </span>
         </div>
-        <div className="flex">
-          <div className="relative group">
-            <button className="text-gray-500 hover:text-gray-700 p-1">
-              <i className="ri-more-2-fill"></i>
-            </button>
-            <div className="absolute right-0 mt-1 w-48 bg-white shadow-lg rounded-md py-1 z-10 hidden group-hover:block">
+        <div ref={menuRef} className="relative">
+          <button 
+            className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
+            onClick={toggleMenu}
+            aria-label="Column menu"
+          >
+            <MoreHorizontal className="h-5 w-5" />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 mt-1 w-48 bg-white shadow-lg rounded-md py-1 z-50">
               <button 
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
                 onClick={handleEditCategory}
               >
-                <i className="ri-edit-line mr-2"></i>
+                <Edit className="h-4 w-4 mr-2" />
                 Edit Category
               </button>
               <button 
-                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
                 onClick={handleDeleteCategory}
               >
-                <i className="ri-delete-bin-line mr-2"></i>
+                <Trash2 className="h-4 w-4 mr-2" />
                 Delete Category
               </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
       
@@ -107,7 +142,7 @@ export default function TaskColumn({
               className="mt-2 w-full py-2 border border-dashed border-gray-300 rounded-md text-gray-500 hover:text-primary hover:border-primary flex items-center justify-center"
               onClick={() => onAddTask(category.id)}
             >
-              <i className="ri-add-line mr-1"></i>
+              <Plus className="h-4 w-4 mr-1" />
               <span>Add Task</span>
             </Button>
           </div>

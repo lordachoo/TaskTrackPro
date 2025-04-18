@@ -1,7 +1,8 @@
 import { Draggable } from "react-beautiful-dnd";
 import { Task } from "@shared/schema";
-import { ReactNode } from "react";
+import { ReactNode, useState, useRef, useEffect } from "react";
 import { queryClient } from "@/lib/queryClient";
+import { Archive, Trash2, MoreVertical, Calendar, MessageSquare, GripVertical } from "lucide-react";
 
 interface TaskCardProps {
   task: Task;
@@ -85,6 +86,28 @@ export default function TaskCard({
     }).format(date);
   };
 
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    
+    // Add event listener when menu is open
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    
+    // Cleanup
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuOpen]);
+
   const handleEdit = () => {
     onEdit(task);
   };
@@ -92,6 +115,7 @@ export default function TaskCard({
   const handleArchive = (e: React.MouseEvent) => {
     e.stopPropagation();
     onArchive(id);
+    setMenuOpen(false);
   };
   
   const handleDelete = (e: React.MouseEvent) => {
@@ -99,6 +123,12 @@ export default function TaskCard({
     if (window.confirm("Are you sure you want to permanently delete this task? This action cannot be undone.")) {
       onDelete(id);
     }
+    setMenuOpen(false);
+  };
+  
+  const toggleMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMenuOpen(!menuOpen);
   };
 
   // Helper function to safely render custom data values
@@ -137,16 +167,33 @@ export default function TaskCard({
           <div className="ml-2">
             <div className="flex justify-between items-start mb-2">
               <h4 className="font-medium text-gray-800">{title}</h4>
-              <div className="flex">
-                <button className="text-gray-400 hover:text-gray-600 mr-2" onClick={handleArchive} title="Archive Task">
-                  <i className="ri-archive-line"></i>
+              <div ref={menuRef} className="relative">
+                <button 
+                  onClick={toggleMenu} 
+                  className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
+                  aria-label="Task options"
+                >
+                  <MoreVertical className="h-4 w-4" />
                 </button>
-                <button className="text-red-400 hover:text-red-600 mr-2" onClick={handleDelete} title="Delete Task">
-                  <i className="ri-delete-bin-line"></i>
-                </button>
-                <button className="text-gray-400 hover:text-gray-600">
-                  <i className="ri-drag-move-line"></i>
-                </button>
+                
+                {menuOpen && (
+                  <div className="absolute right-0 mt-1 w-40 bg-white shadow-lg rounded-md py-1 z-50">
+                    <button 
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                      onClick={handleArchive}
+                    >
+                      <Archive className="h-4 w-4 mr-2" />
+                      Archive Task
+                    </button>
+                    <button 
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
+                      onClick={handleDelete}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Task
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -158,8 +205,9 @@ export default function TaskCard({
             
             <div className="flex justify-between items-center mb-2">
               {dueDate && (
-                <div className="text-xs font-medium text-gray-500">
-                  Due: {formatDate(dueDate)}
+                <div className="text-xs font-medium text-gray-500 flex items-center">
+                  <Calendar className="h-3 w-3 mr-1" />
+                  {formatDate(dueDate)}
                 </div>
               )}
               {priority && (
@@ -186,7 +234,7 @@ export default function TaskCard({
                 ))}
               </div>
               <div className="flex items-center text-gray-500 text-sm">
-                <i className="ri-chat-1-line mr-1"></i>
+                <MessageSquare className="h-4 w-4 mr-1" />
                 <span>{comments}</span>
               </div>
             </div>
