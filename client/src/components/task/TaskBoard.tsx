@@ -165,27 +165,56 @@ export default function TaskBoard({ boardId, onAddCategory }: TaskBoardProps) {
   
   const deleteTaskMutation = useMutation({
     mutationFn: async (taskId: number) => {
+      // Log the task we're attempting to delete
+      console.log(`Attempting to delete task with ID: ${taskId}`);
+      
+      // Find the task's category before deletion for better state management
+      let taskCategory = 0;
+      for (const [catId, tasks] of Object.entries(categoryTasks)) {
+        const foundTask = tasks.find(t => t.id === taskId);
+        if (foundTask) {
+          taskCategory = Number(catId);
+          console.log(`Found task ${taskId} in category ${taskCategory}`);
+          break;
+        }
+      }
+      
+      // Perform the deletion
       const res = await apiRequest('DELETE', `/api/tasks/${taskId}`, {});
-      return { taskId, categoryId: Number(res.headers.get('X-Category-ID') || 0) };
+      console.log(`Delete API call completed with status: ${res.status}`);
+      
+      return { 
+        taskId, 
+        categoryId: taskCategory || Number(res.headers.get('X-Category-ID') || 0) 
+      };
     },
     onSuccess: (data: { taskId: number, categoryId: number }) => {
-      // Update local state
+      console.log(`Task deletion successful, updating UI for task ${data.taskId} in category ${data.categoryId}`);
+      
+      // Immediately update local state to remove the task
       setCategoryTasks(prev => {
         const newTasks = { ...prev };
         
-        // If we don't have category ID from response, search through all categories
-        if (data.categoryId === 0) {
-          Object.keys(newTasks).forEach(catId => {
-            newTasks[Number(catId)] = newTasks[Number(catId)].filter(t => t.id !== data.taskId);
+        // Remove the task from ALL categories to be safe
+        Object.keys(newTasks).forEach(catId => {
+          const catIdNum = Number(catId);
+          const filtered = newTasks[catIdNum].filter(t => {
+            const keep = t.id !== data.taskId;
+            if (!keep) {
+              console.log(`Removing task ${t.id} from category ${catIdNum}`);
+            }
+            return keep;
           });
-        } else {
-          // If we have category ID, only update that category
-          if (newTasks[data.categoryId]) {
-            newTasks[data.categoryId] = newTasks[data.categoryId].filter(t => t.id !== data.taskId);
-          }
-        }
+          newTasks[catIdNum] = filtered;
+        });
         
+        console.log("Updated tasks state:", newTasks);
         return newTasks;
+      });
+      
+      // Also invalidate the query cache to ensure data consistency
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/categories', data.categoryId, 'tasks'] 
       });
       
       toast({
