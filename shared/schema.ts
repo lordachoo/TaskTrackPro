@@ -8,21 +8,22 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  // Note: These fields are for the in-memory implementation only
-  // They don't exist in the current database
-  // When migrating to a database, run migrations first
+  fullName: text("full_name"),
+  email: text("email"),
+  role: text("role").default("user"),
+  avatarColor: text("avatar_color").default("#6366f1"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
-}).extend({
-  // Extended fields for non-database properties
-  fullName: z.string().optional(),
-  email: z.string().email().optional(),
-  role: z.enum(['admin', 'user']).optional(),
-  avatarColor: z.string().optional(),
-  isActive: z.boolean().optional(),
+  fullName: true,
+  email: true,
+  role: true,
+  avatarColor: true,
+  isActive: true,
 });
 
 // Define board schema
@@ -94,15 +95,7 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({
 
 // Type definitions
 export type InsertUser = z.infer<typeof insertUserSchema>;
-// Extend the base User type with additional properties for the in-memory implementation
-export type User = typeof users.$inferSelect & {
-  fullName?: string;
-  email?: string;
-  role?: string;
-  avatarColor?: string;
-  isActive?: boolean;
-  createdAt?: Date;
-};
+export type User = typeof users.$inferSelect;
 
 export type InsertBoard = z.infer<typeof insertBoardSchema>;
 export type Board = typeof boards.$inferSelect;
