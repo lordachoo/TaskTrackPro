@@ -449,10 +449,20 @@ export default function Dashboard() {
         <div className="flex-shrink-0">
           <ControlBar 
             onCreateTask={() => {
-              // This will be handled by the TaskBoard component
-              const createTaskButton = document.querySelector('.task-column:first-child button.flex.items-center.justify-center');
-              if (createTaskButton) {
-                (createTaskButton as HTMLElement).click();
+              // Find the first category to create a task in
+              if (categoriesData && categoriesData.length > 0) {
+                const firstCategory = categoriesData[0];
+                // Dispatch a custom event that TaskBoard will listen for
+                window.dispatchEvent(new CustomEvent('createNewTask', { 
+                  detail: { categoryId: firstCategory.id } 
+                }));
+              } else {
+                // If no categories exist, ask to create a category first
+                toast({
+                  title: "No categories available",
+                  description: "Please create a category first before adding tasks.",
+                  variant: "destructive",
+                });
               }
             }}
             onAddCategory={() => setIsCategoryModalOpen(true)}
