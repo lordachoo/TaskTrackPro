@@ -86,6 +86,170 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
 
     fetchTasks();
   }, [categories]);
+  
+  // Effect to listen for filter and sort events from ControlBar
+  useEffect(() => {
+    // Load filter/sort preferences from localStorage on component mount
+    const savedFilters = localStorage.getItem('taskFilterOptions');
+    const savedSort = localStorage.getItem('taskSortOption');
+    
+    if (savedFilters) {
+      try {
+        setFilterOptions(JSON.parse(savedFilters));
+      } catch (e) {
+        console.error('Error parsing saved filters:', e);
+      }
+    }
+    
+    if (savedSort) {
+      try {
+        setSortOption(JSON.parse(savedSort));
+      } catch (e) {
+        console.error('Error parsing saved sort option:', e);
+      }
+    }
+    
+    // Setup event listeners for filter and sort changes
+    const handleFilterChange = (e: CustomEvent<FilterOptions>) => {
+      setFilterOptions(e.detail);
+    };
+    
+    const handleSortChange = (e: CustomEvent<SortOption>) => {
+      setSortOption(e.detail);
+    };
+    
+    window.addEventListener('applyTaskFilters', handleFilterChange as EventListener);
+    window.addEventListener('applyTaskSort', handleSortChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('applyTaskFilters', handleFilterChange as EventListener);
+      window.removeEventListener('applyTaskSort', handleSortChange as EventListener);
+    };
+  }, []);
+  
+  // Apply filtering and sorting to tasks
+  useEffect(() => {
+    if (!categoryTasks || Object.keys(categoryTasks).length === 0) {
+      setFilteredCategoryTasks({});
+      return;
+    }
+    
+    const newFilteredTasks: Record<number, Task[]> = {};
+    
+    // Apply filters for each category
+    Object.entries(categoryTasks).forEach(([categoryId, tasks]) => {
+      const categoryIdNum = Number(categoryId);
+      
+      // Start with all tasks
+      let filteredTasks = [...tasks];
+      
+      // Apply priority filter
+      if (filterOptions.priorities.length > 0) {
+        filteredTasks = filteredTasks.filter(task => 
+          filterOptions.priorities.includes(task.priority || 'medium')
+        );
+      }
+      
+      // Apply category filter
+      if (filterOptions.categories.length > 0) {
+        if (!filterOptions.categories.includes(categoryId)) {
+          filteredTasks = [];
+        }
+      }
+      
+      // Apply assignee filter
+      if (filterOptions.assignees.length > 0) {
+        filteredTasks = filteredTasks.filter(task => {
+          if (!task.assignees || task.assignees.length === 0) return false;
+          return task.assignees.some(assigneeId => 
+            filterOptions.assignees.includes(assigneeId.toString())
+          );
+        });
+      }
+      
+      // Apply due date filter
+      if (filterOptions.dueDateRange !== 'all') {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Calculate end of week (next Sunday)
+        const endOfWeek = new Date(today);
+        endOfWeek.setDate(today.getDate() + (7 - today.getDay()));
+        
+        filteredTasks = filteredTasks.filter(task => {
+          if (!task.dueDate) {
+            return filterOptions.dueDateRange === 'none';
+          }
+          
+          const dueDate = new Date(task.dueDate);
+          dueDate.setHours(0, 0, 0, 0);
+          
+          switch (filterOptions.dueDateRange) {
+            case 'today':
+              return dueDate.getTime() === today.getTime();
+            case 'week':
+              return dueDate >= today && dueDate <= endOfWeek;
+            case 'overdue':
+              return dueDate < today;
+            default:
+              return true;
+          }
+        });
+      }
+      
+      // Apply sort
+      filteredTasks.sort((a, b) => {
+        switch (sortOption.field) {
+          case 'dueDate':
+            // Handle null/empty due dates
+            if (!a.dueDate && !b.dueDate) return 0;
+            if (!a.dueDate) return sortOption.direction === 'asc' ? 1 : -1;
+            if (!b.dueDate) return sortOption.direction === 'asc' ? -1 : 1;
+            
+            return sortOption.direction === 'asc' 
+              ? new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+              : new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
+            
+          case 'priority': {
+            // Convert priorities to numeric values for comparison
+            const priorityMap: Record<string, number> = { 
+              low: 1, 
+              medium: 2, 
+              high: 3 
+            };
+            
+            const aPriority = priorityMap[a.priority || 'medium'] || 2;
+            const bPriority = priorityMap[b.priority || 'medium'] || 2;
+            
+            return sortOption.direction === 'asc' 
+              ? aPriority - bPriority
+              : bPriority - aPriority;
+          }
+            
+          case 'title':
+            return sortOption.direction === 'asc' 
+              ? (a.title || '').localeCompare(b.title || '')
+              : (b.title || '').localeCompare(a.title || '');
+            
+          case 'createdAt':
+            // Handle createdAt (always present, but explicitly check to be safe)
+            const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            
+            return sortOption.direction === 'asc' 
+              ? aTime - bTime
+              : bTime - aTime;
+            
+          default:
+            return 0;
+        }
+      });
+      
+      newFilteredTasks[categoryIdNum] = filteredTasks;
+    });
+    
+    setFilteredCategoryTasks(newFilteredTasks);
+  }, [categoryTasks, filterOptions, sortOption]);
 
   // Task mutations
   const createTaskMutation = useMutation({
@@ -492,7 +656,12 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
             <TaskColumn
               key={category.id}
               category={category}
-              tasks={categoryTasks[category.id] || []}
+              tasks={
+                // Use filtered tasks if they exist, otherwise use the raw tasks
+                (Object.keys(filteredCategoryTasks).length > 0 
+                  ? filteredCategoryTasks[category.id] 
+                  : categoryTasks[category.id]) || []
+              }
               boardId={boardId}
               onAddTask={handleAddTask}
               onEditTask={handleEditTask}
