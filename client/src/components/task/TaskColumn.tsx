@@ -1,9 +1,18 @@
+import { useState } from "react";
 import { Droppable } from "react-beautiful-dnd";
-import TaskCard from "./TaskCard";
-import { Task, Category } from "@shared/schema";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useState, useRef, useEffect } from "react";
-import { MoreHorizontal, Edit, Trash2, Plus } from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Task, Category } from "@shared/schema";
+import TaskCard from "./TaskCard";
+import { Plus, MoreVertical, Edit, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface TaskColumnProps {
   category: Category;
@@ -28,126 +37,97 @@ export default function TaskColumn({
   onEditCategory,
   onDeleteCategory
 }: TaskColumnProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  
-  // Close menu when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    
-    // Add event listener when menu is open
-    if (menuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    
-    // Cleanup
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [menuOpen]);
-
-  const handleDeleteCategory = () => {
-    if (tasks.length > 0) {
-      alert("Cannot delete a category that contains tasks. Move or delete the tasks first.");
-      return;
-    }
-    
-    if (window.confirm("Are you sure you want to delete this category?")) {
-      onDeleteCategory(category.id);
-    }
-    setMenuOpen(false);
-  };
-  
-  const handleEditCategory = () => {
-    onEditCategory(category);
-    setMenuOpen(false);
-  };
-  
-  const toggleMenu = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setMenuOpen(!menuOpen);
-  };
+  const [showMenu, setShowMenu] = useState(false);
   
   return (
-    <div className="task-column flex flex-col bg-white rounded-lg shadow-sm border border-gray-200" data-column-id={category.id}>
-      <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-        <div className="flex items-center">
+    <Card className="min-w-[300px] max-w-[300px] bg-white shadow-sm border border-gray-200 overflow-visible">
+      <CardHeader className="p-4 pb-2 flex flex-row justify-between items-center">
+        <div className="flex items-center space-x-2">
           <div 
-            className="w-3 h-3 rounded-full mr-3" 
-            style={{ backgroundColor: category.color }}
-          ></div>
-          <h3 className="font-semibold text-gray-800">{category.name}</h3>
-          <span className="ml-2 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-1 rounded-full">
-            {tasks.length}
-          </span>
-        </div>
-        <div ref={menuRef} className="relative">
-          <button 
-            className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
-            onClick={toggleMenu}
-            aria-label="Column menu"
-          >
-            <MoreHorizontal className="h-5 w-5" />
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 mt-1 w-48 bg-white shadow-lg rounded-md py-1 z-50">
-              <button 
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                onClick={handleEditCategory}
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Category
-              </button>
-              <button 
-                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
-                onClick={handleDeleteCategory}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Category
-              </button>
-            </div>
+            className="w-3 h-3 rounded-full" 
+            style={{ backgroundColor: category.color || '#888888' }} 
+          />
+          <CardTitle className="text-sm font-medium">{category.name}</CardTitle>
+          {tasks.length > 0 && (
+            <Badge variant="outline" className="ml-2 text-xs">
+              {tasks.length}
+            </Badge>
           )}
         </div>
-      </div>
+        
+        <DropdownMenu open={showMenu} onOpenChange={setShowMenu}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem 
+              className="cursor-pointer flex items-center gap-2"
+              onClick={() => onEditCategory(category)}
+            >
+              <Edit className="h-4 w-4" />
+              <span>Edit Column</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              className="cursor-pointer text-red-600 flex items-center gap-2"
+              onClick={() => {
+                if (tasks.length > 0) {
+                  alert("Cannot delete a column with tasks. Move or delete the tasks first.");
+                  return;
+                }
+                onDeleteCategory(category.id);
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span>Delete Column</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </CardHeader>
       
-      <Droppable droppableId={`category-${category.id}`}>
-        {(provided, snapshot) => (
-          <div 
+      <Droppable droppableId={`category-${category.id}`} type="task">
+        {(provided) => (
+          <CardContent 
+            className="p-2 max-h-[calc(100vh-220px)] overflow-y-auto"
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`flex-1 overflow-y-auto p-3 space-y-0 ${
-              snapshot.isDraggingOver ? 'bg-gray-50' : ''
-            }`}
           >
-            {tasks.map((task, index) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                index={index}
-                categoryColor={category.color}
-                onEdit={onEditTask}
-                onArchive={onArchiveTask}
-                onDelete={onDeleteTask}
-                boardId={boardId}
-              />
-            ))}
+            {tasks.length === 0 ? (
+              <div className="text-center text-sm text-gray-500 p-4 border border-dashed border-gray-200 rounded-md">
+                No tasks yet
+              </div>
+            ) : (
+              tasks.map((task, index) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  index={index}
+                  categoryColor={category.color || '#888888'}
+                  onEdit={() => onEditTask(task)}
+                  onArchive={() => onArchiveTask(task.id)}
+                  onDelete={() => onDeleteTask(task.id)}
+                  boardId={boardId}
+                />
+              ))
+            )}
             {provided.placeholder}
-            
-            <Button
-              variant="ghost" 
-              className="mt-2 w-full py-2 border border-dashed border-gray-300 rounded-md text-gray-500 hover:text-primary hover:border-primary flex items-center justify-center"
-              onClick={() => onAddTask(category.id)}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              <span>Add Task</span>
-            </Button>
-          </div>
+          </CardContent>
         )}
       </Droppable>
-    </div>
+      
+      <CardFooter className="p-2 pt-0">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="w-full justify-start text-gray-500 hover:text-gray-800 text-sm"
+          onClick={() => onAddTask(category.id)}
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          <span>Add Task</span>
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }

@@ -101,7 +101,7 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
   
   const { users } = useUsers();
 
-  // Fetch tasks for each category
+  // Fetch tasks for each category using TanStack Query
   useEffect(() => {
     if (!categories || categories.length === 0) return;
 
@@ -110,10 +110,21 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
       
       await Promise.all(categories.map(async (category: Category) => {
         try {
-          const res = await fetch(`/api/categories/${category.id}/tasks`);
-          if (!res.ok) throw new Error(`Failed to load tasks for category ${category.id}`);
-          const tasks = await res.json();
-          tasksByCategory[category.id] = tasks;
+          // Use the cached data if available
+          const queryKey = ['/api/categories', category.id, 'tasks'];
+          const cachedData = queryClient.getQueryData<Task[]>(queryKey);
+          
+          if (cachedData) {
+            tasksByCategory[category.id] = cachedData;
+          } else {
+            const res = await fetch(`/api/categories/${category.id}/tasks`);
+            if (!res.ok) throw new Error(`Failed to load tasks for category ${category.id}`);
+            const tasks = await res.json();
+            tasksByCategory[category.id] = tasks;
+            
+            // Cache the result
+            queryClient.setQueryData(queryKey, tasks);
+          }
         } catch (error) {
           console.error(`Error fetching tasks for category ${category.id}:`, error);
           tasksByCategory[category.id] = [];
@@ -124,7 +135,7 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
     };
 
     fetchTasks();
-  }, [categories]);
+  }, [categories.map(c => c.id).join(',')]);
   
   // Effect to listen for filter and sort events from ControlBar
   useEffect(() => {
@@ -524,8 +535,8 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
         order: index
       }));
       
-      // Update local state immediately for a smoother UX
-      setCategories(newCategories);
+      // Update categories list
+      queryClient.setQueryData(['/api/boards', boardId, 'categories'], newCategories);
       
       // Update the orders in the backend
       updateCategoryOrdersMutation.mutate(updatedCategories);
