@@ -467,6 +467,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User management endpoints
+  apiRouter.get("/users", async (_req: Request, res: Response) => {
+    try {
+      // Get all users, for simplicity we don't implement pagination
+      const users = [];
+      for (let i = 1; i <= 100; i++) {
+        const user = await storage.getUser(i);
+        if (user) users.push(user);
+      }
+      
+      // Remove password from response
+      const sanitizedUsers = users.map(user => {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      });
+      
+      res.json(sanitizedUsers);
+    } catch (error) {
+      console.error("Error getting users:", error);
+      res.status(500).json({ message: "Failed to get users" });
+    }
+  });
+
+  apiRouter.get("/users/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const user = await storage.getUser(id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Remove password from response
+      const { password, ...userWithoutPassword } = user;
+      
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error getting user:", error);
+      res.status(500).json({ message: "Failed to get user" });
+    }
+  });
+
+  apiRouter.post("/users", async (req: Request, res: Response) => {
+    try {
+      // First, check if username already exists
+      const existingUser = await storage.getUserByUsername(req.body.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+      
+      const validatedData = insertUserSchema.parse(req.body);
+      const user = await storage.createUser(validatedData);
+      
+      // Remove password from response
+      const { password, ...userWithoutPassword } = user;
+      
+      res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid user data", errors: error.errors });
+      }
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  apiRouter.put("/users/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Check if user exists
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // If username is being changed, make sure it's not already taken
+      if (req.body.username && req.body.username !== user.username) {
+        const existingUser = await storage.getUserByUsername(req.body.username);
+        if (existingUser) {
+          return res.status(400).json({ message: "Username already exists" });
+        }
+      }
+      
+      const validatedData = insertUserSchema.partial().parse(req.body);
+      
+      // Update the user
+      const updatedUser = await storage.updateUser(id, validatedData);
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to update user" });
+      }
+      
+      // Remove password from response
+      const { password, ...userWithoutPassword } = updatedUser;
+      
+      res.json(userWithoutPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid user data", errors: error.errors });
+      }
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  apiRouter.delete("/users/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Check if user exists
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't allow deleting the admin user
+      if (user.role === "admin") {
+        return res.status(403).json({ message: "Cannot delete admin user" });
+      }
+      
+      // Delete the user
+      const success = await storage.deleteUser(id);
+      
+      if (!success) {
+        return res.status(500).json({ message: "Failed to delete user" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
   app.use("/api", apiRouter);
 
   const httpServer = createServer(app);
