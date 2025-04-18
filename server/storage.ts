@@ -4,7 +4,8 @@ import {
   Category, InsertCategory, 
   CustomField, InsertCustomField,
   Task, InsertTask,
-  users, boards, categories, customFields, tasks
+  SystemSetting, InsertSystemSetting,
+  users, boards, categories, customFields, tasks, systemSettings
 } from "@shared/schema";
 
 // Interface for storage operations
@@ -19,6 +20,10 @@ export interface IStorage {
   
   // Authentication method
   verifyPassword(plainPassword: string, hashedPassword: string): Promise<boolean>;
+  
+  // System Settings methods
+  getSystemSetting(key: string): Promise<SystemSetting | undefined>;
+  updateSystemSetting(key: string, value: string): Promise<SystemSetting | undefined>;
 
   // Board methods
   getBoards(userId: number, showArchived?: boolean): Promise<Board[]>;

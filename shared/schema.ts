@@ -144,3 +144,21 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
     references: [categories.id],
   }),
 }));
+
+// Define system settings schema
+export const systemSettings = pgTable("system_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  description: text("description"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSystemSettingSchema = createInsertSchema(systemSettings).pick({
+  key: true,
+  value: true,
+  description: true,
+});
+
+export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
+export type SystemSetting = typeof systemSettings.$inferSelect;
