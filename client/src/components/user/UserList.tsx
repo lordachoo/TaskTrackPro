@@ -173,12 +173,12 @@ export default function UserList() {
                       className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold"
                       style={{ backgroundColor: user.avatarColor || '#6366f1' }}
                     >
-                      {user.fullName.substring(0, 1).toUpperCase()}
+                      {(user.fullName || user.username).substring(0, 1).toUpperCase()}
                     </div>
                   </TableCell>
-                  <TableCell>{user.fullName}</TableCell>
+                  <TableCell>{user.fullName || user.username}</TableCell>
                   <TableCell>{user.username}</TableCell>
-                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.email || `${user.username}@example.com`}</TableCell>
                   <TableCell>
                     <Badge 
                       variant={user.role === 'admin' ? "destructive" : "outline"}
@@ -188,9 +188,9 @@ export default function UserList() {
                   </TableCell>
                   <TableCell>
                     <Badge 
-                      variant={user.isActive ? "default" : "secondary"}
+                      variant={user.isActive !== false ? "default" : "secondary"}
                     >
-                      {user.isActive ? 'Active' : 'Inactive'}
+                      {user.isActive !== false ? 'Active' : 'Inactive'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -268,7 +268,7 @@ export default function UserList() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {selectedUser?.fullName}? This action cannot be undone.
+              Are you sure you want to delete {selectedUser?.fullName || selectedUser?.username}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

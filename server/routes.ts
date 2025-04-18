@@ -1,13 +1,15 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
 import { z } from "zod";
 import { 
   insertBoardSchema, 
   insertCategorySchema, 
   insertCustomFieldSchema, 
   insertTaskSchema,
-  insertUserSchema
+  insertUserSchema,
+  users
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -470,15 +472,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User management endpoints
   apiRouter.get("/users", async (_req: Request, res: Response) => {
     try {
-      // Get all users, for simplicity we don't implement pagination
-      const users = [];
-      for (let i = 1; i <= 100; i++) {
-        const user = await storage.getUser(i);
-        if (user) users.push(user);
-      }
+      // Get all users directly from the database
+      const result = await db.select().from(users);
+      
+      // Map each base user to our extended user model with default values
+      const extendedUsers = result.map(baseUser => ({
+        ...baseUser,
+        fullName: baseUser.username, // Default to username
+        email: `${baseUser.username}@example.com`, // Default email
+        role: baseUser.username === 'admin' ? 'admin' : 'user', // Set role based on username
+        avatarColor: '#6366f1', // Default color
+        isActive: true, // Default to active
+        createdAt: new Date() // Default date
+      }));
       
       // Remove password from response
-      const sanitizedUsers = users.map(user => {
+      const sanitizedUsers = extendedUsers.map(user => {
         const { password, ...userWithoutPassword } = user;
         return userWithoutPassword;
       });
