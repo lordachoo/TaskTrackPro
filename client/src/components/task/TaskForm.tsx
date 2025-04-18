@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import CustomFieldForm from "./CustomFieldForm";
+import { processCustomData, removeCustomDataField } from "./CustomDataHandler";
 
 interface TaskFormProps {
   boardId: number;
