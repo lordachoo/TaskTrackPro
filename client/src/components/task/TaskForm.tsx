@@ -335,7 +335,13 @@ export default function TaskForm({
                         onChange={(e) => {
                           const customData = { ...(form.getValues('customData') || {}) };
                           customData[fieldName] = e.target.value; 
-                          form.setValue('customData', customData);
+                          form.setValue('customData', customData, { 
+                            shouldDirty: true,
+                            shouldTouch: true,
+                            shouldValidate: true 
+                          });
+                          // Force re-render to ensure the UI updates
+                          setForceRender(prev => prev + 1);
                         }}
                       />
                     )}
@@ -344,11 +350,15 @@ export default function TaskForm({
                         type="number"
                         value={fieldValue}
                         onChange={(e) => {
-                          const customData = form.getValues('customData') || {};
-                          form.setValue('customData', {
-                            ...customData,
-                            [fieldName]: e.target.value
+                          const customData = { ...(form.getValues('customData') || {}) };
+                          customData[fieldName] = e.target.value; 
+                          form.setValue('customData', customData, { 
+                            shouldDirty: true,
+                            shouldTouch: true,
+                            shouldValidate: true 
                           });
+                          // Force re-render to ensure the UI updates
+                          setForceRender(prev => prev + 1);
                         }}
                       />
                     )}
@@ -357,11 +367,15 @@ export default function TaskForm({
                         type="date"
                         value={fieldValue}
                         onChange={(e) => {
-                          const customData = form.getValues('customData') || {};
-                          form.setValue('customData', {
-                            ...customData,
-                            [fieldName]: e.target.value
+                          const customData = { ...(form.getValues('customData') || {}) };
+                          customData[fieldName] = e.target.value; 
+                          form.setValue('customData', customData, { 
+                            shouldDirty: true,
+                            shouldTouch: true,
+                            shouldValidate: true 
                           });
+                          // Force re-render to ensure the UI updates
+                          setForceRender(prev => prev + 1);
                         }}
                       />
                     )}
@@ -369,11 +383,15 @@ export default function TaskForm({
                       <Select
                         value={fieldValue}
                         onValueChange={(value) => {
-                          const customData = form.getValues('customData') || {};
-                          form.setValue('customData', {
-                            ...customData,
-                            [fieldName]: value
+                          const customData = { ...(form.getValues('customData') || {}) };
+                          customData[fieldName] = value; 
+                          form.setValue('customData', customData, { 
+                            shouldDirty: true,
+                            shouldTouch: true,
+                            shouldValidate: true 
                           });
+                          // Force re-render to ensure the UI updates
+                          setForceRender(prev => prev + 1);
                         }}
                       >
                         <SelectTrigger>
@@ -394,11 +412,15 @@ export default function TaskForm({
                           id={`custom-${field.id}`}
                           checked={!!fieldValue}
                           onCheckedChange={(checked) => {
-                            const customData = form.getValues('customData') || {};
-                            form.setValue('customData', {
-                              ...customData,
-                              [fieldName]: checked
+                            const customData = { ...(form.getValues('customData') || {}) };
+                            customData[fieldName] = checked; 
+                            form.setValue('customData', customData, { 
+                              shouldDirty: true,
+                              shouldTouch: true,
+                              shouldValidate: true 
                             });
+                            // Force re-render to ensure the UI updates
+                            setForceRender(prev => prev + 1);
                           }}
                         />
                         <label
@@ -415,11 +437,15 @@ export default function TaskForm({
                         value={fieldValue}
                         placeholder="https://"
                         onChange={(e) => {
-                          const customData = form.getValues('customData') || {};
-                          form.setValue('customData', {
-                            ...customData,
-                            [fieldName]: e.target.value
+                          const customData = { ...(form.getValues('customData') || {}) };
+                          customData[fieldName] = e.target.value; 
+                          form.setValue('customData', customData, { 
+                            shouldDirty: true,
+                            shouldTouch: true,
+                            shouldValidate: true 
                           });
+                          // Force re-render to ensure the UI updates
+                          setForceRender(prev => prev + 1);
                         }}
                       />
                     )}
