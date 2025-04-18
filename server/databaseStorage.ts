@@ -13,31 +13,67 @@ import { and, eq, asc } from "drizzle-orm";
 export class DatabaseStorage implements IStorage {
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    const [baseUser] = await db.select().from(users).where(eq(users.id, id));
+    if (!baseUser) return undefined;
+    
+    // Add default values for extended properties
+    return this.addUserDefaults(baseUser);
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
+    const [baseUser] = await db.select().from(users).where(eq(users.username, username));
+    if (!baseUser) return undefined;
+    
+    // Add default values for extended properties
+    return this.addUserDefaults(baseUser);
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
-    return user;
+    // Keep only the fields that exist in the database
+    const dbUser = {
+      username: insertUser.username,
+      password: insertUser.password
+    };
+    
+    const [baseUser] = await db.insert(users).values(dbUser).returning();
+    
+    // Return user with default values for extended properties
+    return this.addUserDefaults(baseUser);
   }
   
   async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
-    const [updatedUser] = await db.update(users)
-      .set(userData)
+    // Keep only the fields that exist in the database
+    const dbUserData: Partial<InsertUser> = {};
+    if (userData.username) dbUserData.username = userData.username;
+    if (userData.password) dbUserData.password = userData.password;
+    
+    const [baseUser] = await db.update(users)
+      .set(dbUserData)
       .where(eq(users.id, id))
       .returning();
-    return updatedUser;
+    
+    if (!baseUser) return undefined;
+    
+    // Return user with default values for extended properties
+    return this.addUserDefaults(baseUser);
   }
   
   async deleteUser(id: number): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id)).returning();
     return result.length > 0;
+  }
+  
+  // Helper method to add default values for properties that are not in the database
+  private addUserDefaults(baseUser: typeof users.$inferSelect): User {
+    return {
+      ...baseUser,
+      fullName: baseUser.username,  // Default to username 
+      email: `${baseUser.username}@example.com`, // Default email
+      role: baseUser.username === 'admin' ? 'admin' : 'user', // Set role based on username
+      avatarColor: '#6366f1',  // Default color
+      isActive: true,  // Default to active
+      createdAt: new Date()  // Default date
+    };
   }
 
   // Board methods
