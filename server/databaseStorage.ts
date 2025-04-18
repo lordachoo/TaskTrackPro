@@ -12,6 +12,13 @@ import { and, eq, asc } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
   // User methods
+  async getAllUsers(): Promise<User[]> {
+    console.log("Getting all users from database");
+    const allUsers = await db.select().from(users);
+    console.log("Retrieved users from database:", allUsers);
+    return allUsers;
+  }
+
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;

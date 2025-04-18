@@ -472,25 +472,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User management endpoints
   apiRouter.get("/users", async (_req: Request, res: Response) => {
     try {
-      // Get all users directly from the database
-      const result = await db.select().from(users);
+      // Use the storage interface to get all users with proper data
+      const allUsers = await storage.getAllUsers();
       
-      // Map each base user to our extended user model with default values
-      const extendedUsers = result.map(baseUser => ({
-        ...baseUser,
-        fullName: baseUser.username, // Default to username
-        email: `${baseUser.username}@example.com`, // Default email
-        role: baseUser.username === 'admin' ? 'admin' : 'user', // Set role based on username
-        avatarColor: '#6366f1', // Default color
-        isActive: true, // Default to active
-        createdAt: new Date() // Default date
-      }));
+      console.log("Retrieved users from database:", allUsers);
       
       // Remove password from response
-      const sanitizedUsers = extendedUsers.map(user => {
+      const sanitizedUsers = allUsers.map(user => {
         const { password, ...userWithoutPassword } = user;
         return userWithoutPassword;
       });
+      
+      console.log("Sending users to client:", sanitizedUsers);
+      
+      // Add cache control headers to prevent browser caching
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      res.set('Surrogate-Control', 'no-store');
       
       res.json(sanitizedUsers);
     } catch (error) {
