@@ -473,6 +473,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // System Settings endpoints
+  apiRouter.get("/settings/:key", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const key = req.params.key;
+      const setting = await storage.getSystemSetting(key);
+      
+      if (!setting) {
+        return res.status(404).json({ message: `Setting '${key}' not found` });
+      }
+      
+      res.json(setting);
+    } catch (error) {
+      console.error(`Error getting setting ${req.params.key}:`, error);
+      res.status(500).json({ message: "Failed to get system setting" });
+    }
+  });
+  
+  apiRouter.put("/settings/:key", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const key = req.params.key;
+      const { value } = req.body;
+      
+      if (typeof value !== 'string') {
+        return res.status(400).json({ message: "Setting value must be a string" });
+      }
+      
+      const updatedSetting = await storage.updateSystemSetting(key, value);
+      res.json(updatedSetting);
+    } catch (error) {
+      console.error(`Error updating setting ${req.params.key}:`, error);
+      res.status(500).json({ message: "Failed to update system setting" });
+    }
+  });
+  
   // User management endpoints
   apiRouter.get("/users", async (_req: Request, res: Response) => {
     try {

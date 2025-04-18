@@ -184,6 +184,17 @@ export function setupAuth(app: Express) {
         password: req.body.password ? '***MASKED***' : undefined
       });
       
+      // Check if registrations are allowed
+      const registrationSetting = await storage.getSystemSetting('allow_registrations');
+      const registrationsAllowed = registrationSetting?.value === 'true';
+      
+      // If user is not authenticated (or not admin) and registrations are disabled, reject
+      if (!req.isAuthenticated() && !registrationsAllowed) {
+        return res.status(403).json({ 
+          message: "New user registration is currently disabled. Please contact an administrator." 
+        });
+      }
+      
       // Check if username already exists
       const existingUser = await storage.getUserByUsername(req.body.username);
       

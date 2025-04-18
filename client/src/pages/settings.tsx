@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import Sidebar from "@/components/layout/Sidebar";
 import TopNav from "@/components/layout/TopNav";
 import UserList from "@/components/user/UserList";
+import RegistrationSetting from "@/components/user/RegistrationSetting";
 import { Board, CustomField } from "@shared/schema";
 
 export default function Settings() {
@@ -363,6 +364,11 @@ export default function Settings() {
               </TabsContent>
               
               <TabsContent value="users">
+                {/* Registration Settings */}
+                {/* Registration Settings */}
+                <RegistrationSetting />
+                
+                {/* User List */}
                 <Card>
                   <CardHeader>
                     <CardTitle>User Management</CardTitle>
@@ -371,7 +377,9 @@ export default function Settings() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <UserList />
+                    <div>
+                      <UserList />
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
