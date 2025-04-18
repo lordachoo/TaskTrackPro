@@ -42,7 +42,7 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
   
   // Fetch categories
   const { 
-    data: categories, 
+    data: categoriesData, 
     isLoading: isCategoriesLoading,
     error: categoriesError
   } = useQuery({
@@ -53,6 +53,17 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
       return res.json();
     }
   });
+  
+  // State to hold ordered categories (for drag and drop)
+  const [categories, setCategories] = useState<Category[]>([]);
+  
+  // Update categories state when data is loaded and sort by order
+  useEffect(() => {
+    if (categoriesData && categoriesData.length > 0) {
+      const sortedCategories = [...categoriesData].sort((a, b) => a.order - b.order);
+      setCategories(sortedCategories);
+    }
+  }, [categoriesData]);
   
   // Fetch custom fields
   const {
@@ -446,9 +457,9 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
     }
   });
 
-  // Handle drag and drop
+  // Handle drag and drop for both tasks and categories
   const handleDragEnd = (result: DropResult) => {
-    const { source, destination, draggableId } = result;
+    const { source, destination, draggableId, type } = result;
     
     // If dropped outside a droppable area
     if (!destination) return;
@@ -459,6 +470,40 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
       source.index === destination.index
     ) return;
     
+    // Handle column reordering
+    if (type === 'column') {
+      // Extract the category ID from the draggableId
+      const categoryId = parseInt(draggableId.replace('column-', ''));
+      
+      // Create a new array of categories
+      const newCategories = [...categories];
+      
+      // Find the category being moved
+      const categoryToMove = newCategories.find(c => c.id === categoryId);
+      if (!categoryToMove) return;
+      
+      // Remove the category from its old position
+      newCategories.splice(source.index, 1);
+      
+      // Insert it at the new position
+      newCategories.splice(destination.index, 0, categoryToMove);
+      
+      // Update the order field of each category
+      const updatedCategories = newCategories.map((category, index) => ({
+        id: category.id,
+        order: index
+      }));
+      
+      // Update local state immediately for a smoother UX
+      setCategories(newCategories);
+      
+      // Update the orders in the backend
+      updateCategoryOrdersMutation.mutate(updatedCategories);
+      
+      return;
+    }
+    
+    // Handle task reordering/moving (existing logic)
     // Extract the category IDs
     const sourceId = parseInt(source.droppableId.replace('category-', ''));
     const destinationId = parseInt(destination.droppableId.replace('category-', ''));
@@ -537,6 +582,35 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
         description: "There was an error updating the category. Please try again.",
         variant: "destructive",
       });
+    }
+  });
+  
+  // Mutation to update category orders
+  const updateCategoryOrdersMutation = useMutation({
+    mutationFn: async (updatedCategories: Array<Partial<Category> & { id: number }>) => {
+      return Promise.all(
+        updatedCategories.map(async ({ id, order }) => {
+          const res = await apiRequest('PUT', `/api/categories/${id}`, { order });
+          return res.json();
+        })
+      );
+    },
+    onSuccess: () => {
+      toast({
+        title: "Categories reordered",
+        description: "Categories have been reordered successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error reordering categories:', error);
+      toast({
+        title: "Failed to reorder categories",
+        description: "There was an error reordering the categories. Please try again.",
+        variant: "destructive",
+      });
+      
+      // Refresh the list to restore original order
+      queryClient.invalidateQueries({ queryKey: ['/api/boards', boardId, 'categories'] });
     }
   });
   
@@ -712,43 +786,75 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
       )}
       
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="board-container h-full flex space-x-4 pb-4">
-          {categories && categories.map((category: Category) => (
-            <TaskColumn
-              key={category.id}
-              category={category}
-              tasks={
-                // Use filtered tasks if they exist, otherwise use the raw tasks
-                (Object.keys(filteredCategoryTasks).length > 0 
-                  ? filteredCategoryTasks[category.id] 
-                  : categoryTasks[category.id]) || []
-              }
-              boardId={boardId}
-              onAddTask={handleAddTask}
-              onEditTask={handleEditTask}
-              onArchiveTask={(taskId) => archiveTaskMutation.mutate(taskId)}
-              onDeleteTask={(taskId) => deleteTaskMutation.mutate(taskId)}
-              onEditCategory={handleEditCategory}
-              onDeleteCategory={handleDeleteCategory}
-            />
-          ))}
-          
-          {/* Add Column Button */}
-          <div className="flex items-center justify-center min-w-[120px]">
-            <Button 
-              variant="ghost"
-              className="h-12 px-4 border border-dashed border-gray-300 rounded-md text-gray-500 hover:text-primary hover:border-primary flex items-center justify-center"
-              onClick={() => {
-                setSelectedCategory(null);
-                setIsEditMode(false);
-                setIsCategoryModalOpen(true);
-              }}
+        <Droppable droppableId="board-columns" direction="horizontal" type="column">
+          {(provided) => (
+            <div 
+              className="board-container h-full flex space-x-4 pb-4"
+              ref={provided.innerRef}
+              {...provided.droppableProps}
             >
-              <Plus className="h-4 w-4 mr-1" />
-              <span>Add Column</span>
-            </Button>
-          </div>
-        </div>
+              {categories && categories.map((category: Category, index: number) => (
+                <Draggable 
+                  key={category.id} 
+                  draggableId={`column-${category.id}`} 
+                  index={index}
+                >
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      className={`${snapshot.isDragging ? 'opacity-70' : ''}`}
+                    >
+                      <div className="flex flex-col">
+                        <div 
+                          className="mb-1 flex items-center justify-center py-1 px-2 rounded cursor-grab bg-gray-50 hover:bg-gray-100 transition-colors" 
+                          {...provided.dragHandleProps}
+                        >
+                          <GripVertical className="h-4 w-4 text-gray-400 mr-1" />
+                          <span className="text-xs text-gray-500 font-medium">Drag to reorder</span>
+                        </div>
+                        <TaskColumn
+                          key={category.id}
+                          category={category}
+                          tasks={
+                            // Use filtered tasks if they exist, otherwise use the raw tasks
+                            (Object.keys(filteredCategoryTasks).length > 0 
+                              ? filteredCategoryTasks[category.id] 
+                              : categoryTasks[category.id]) || []
+                          }
+                          boardId={boardId}
+                          onAddTask={handleAddTask}
+                          onEditTask={handleEditTask}
+                          onArchiveTask={(taskId) => archiveTaskMutation.mutate(taskId)}
+                          onDeleteTask={(taskId) => deleteTaskMutation.mutate(taskId)}
+                          onEditCategory={handleEditCategory}
+                          onDeleteCategory={handleDeleteCategory}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+              
+              {/* Add Column Button */}
+              <div className="flex items-center justify-center min-w-[120px]">
+                <Button 
+                  variant="ghost"
+                  className="h-12 px-4 border border-dashed border-gray-300 rounded-md text-gray-500 hover:text-primary hover:border-primary flex items-center justify-center"
+                  onClick={() => {
+                    setSelectedCategory(null);
+                    setIsEditMode(false);
+                    setIsCategoryModalOpen(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  <span>Add Column</span>
+                </Button>
+              </div>
+            </div>
+          )}
+        </Droppable>
       </DragDropContext>
 
       {/* Task Modal */}
