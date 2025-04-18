@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -31,6 +31,7 @@ import { Board, CustomField } from "@shared/schema";
 export default function Settings() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAddingField, setIsAddingField] = useState(false);
+  const [selectedBoardId, setSelectedBoardId] = useState<number | null>(null);
   const [newField, setNewField] = useState<{
     name: string;
     type: string;
@@ -39,9 +40,9 @@ export default function Settings() {
   }>({ name: '', type: '', options: null, boardId: 1 }); // Default to 1, will update after boards load
   const { toast } = useToast();
 
-  // Fetch the first board (for demo purposes)
+  // Fetch all boards
   const { 
-    data: boards,
+    data: boards = [],
     isLoading: isBoardsLoading
   } = useQuery({
     queryKey: ['/api/boards'],
@@ -52,8 +53,19 @@ export default function Settings() {
     }
   });
 
-  // Use the first board or default to ID 1
-  const currentBoard: Board = boards && boards.length > 0 ? boards[0] : { id: 1, name: "Marketing Campaign Board", userId: 1 };
+  // Set the default selected board when boards load
+  useEffect(() => {
+    if (boards && boards.length > 0 && !selectedBoardId) {
+      setSelectedBoardId(boards[0].id);
+      // Update the newField form with the right board ID
+      setNewField(prev => ({ ...prev, boardId: boards[0].id }));
+    }
+  }, [boards, selectedBoardId]);
+
+  // Get the current board object
+  const currentBoard = selectedBoardId && boards.length > 0
+    ? boards.find((board: Board) => board.id === selectedBoardId) || boards[0]
+    : boards.length > 0 ? boards[0] : { id: 1, name: "Marketing Campaign Board", userId: 1 };
 
   // Fetch custom fields
   const { 
@@ -228,6 +240,31 @@ export default function Settings() {
                     </Button>
                   </CardHeader>
                   <CardContent>
+                    {/* Board Selector */}
+                    {boards.length > 1 && (
+                      <div className="mb-6 p-4 bg-gray-50 rounded-md border">
+                        <h3 className="text-sm font-medium mb-2 text-gray-700">Select Board</h3>
+                        <select
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                          value={selectedBoardId || ''}
+                          onChange={(e) => {
+                            const newBoardId = parseInt(e.target.value);
+                            setSelectedBoardId(newBoardId);
+                            // Update the newField form with the right board ID
+                            setNewField(prev => ({ ...prev, boardId: newBoardId }));
+                          }}
+                        >
+                          {boards.map((board: Board) => (
+                            <option key={board.id} value={board.id}>
+                              {board.name} (Board #{board.id})
+                            </option>
+                          ))}
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Custom fields are board-specific. Select a board to manage its custom fields.
+                        </p>
+                      </div>
+                    )}
                     {isAddingField && (
                       <div className="mb-8 p-4 border rounded-md bg-gray-50">
                         <h3 className="text-lg font-medium mb-4">Add New Custom Field</h3>
