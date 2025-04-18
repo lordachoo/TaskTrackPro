@@ -172,14 +172,22 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
       setSearchOptions(e.detail);
     };
     
+    const handleCreateTask = (e: CustomEvent<{categoryId: number}>) => {
+      if (e.detail && e.detail.categoryId) {
+        handleAddTask(e.detail.categoryId);
+      }
+    };
+    
     window.addEventListener('applyTaskFilters', handleFilterChange as EventListener);
     window.addEventListener('applyTaskSort', handleSortChange as EventListener);
     window.addEventListener('applyTaskSearch', handleSearchChange as EventListener);
+    window.addEventListener('createNewTask', handleCreateTask as EventListener);
     
     return () => {
       window.removeEventListener('applyTaskFilters', handleFilterChange as EventListener);
       window.removeEventListener('applyTaskSort', handleSortChange as EventListener);
       window.removeEventListener('applyTaskSearch', handleSearchChange as EventListener);
+      window.removeEventListener('createNewTask', handleCreateTask as EventListener);
     };
   }, []);
   
