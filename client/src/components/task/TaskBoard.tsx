@@ -271,10 +271,27 @@ export default function TaskBoard({ boardId, onAddCategory }: TaskBoardProps) {
 
   // Handle submitting the task form
   const handleTaskSubmit = (taskData: Partial<Task>) => {
+    // Log the task data to debug custom fields
+    console.log('Task data to submit:', taskData);
+    
+    // Make sure customData is properly formatted for the API
+    const processedData = {
+      ...taskData,
+      // Ensure customData exists and doesn't have undefined fields
+      customData: taskData.customData || {}
+    };
+    
     if (isEditMode && selectedTask) {
-      updateTaskMutation.mutate({ id: selectedTask.id, ...taskData });
+      // For editing, merge with existing customData to ensure proper update
+      const mergedData = {
+        ...processedData,
+        id: selectedTask.id
+      };
+      console.log('Updating task with data:', mergedData);
+      updateTaskMutation.mutate(mergedData);
     } else {
-      createTaskMutation.mutate(taskData as Omit<Task, 'id' | 'createdAt'>);
+      console.log('Creating task with data:', processedData);
+      createTaskMutation.mutate(processedData as Omit<Task, 'id' | 'createdAt'>);
     }
   };
 

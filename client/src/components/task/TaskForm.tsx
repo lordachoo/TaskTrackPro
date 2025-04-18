@@ -115,7 +115,17 @@ export default function TaskForm({
   ];
 
   const handleFormSubmit = (data: TaskFormValues) => {
-    onSubmit(data);
+    // Log the form data to see what is being submitted
+    console.log("Submitting form data:", data);
+    
+    // Make sure customData is included in the submission
+    const formattedData = {
+      ...data,
+      customData: data.customData || {}
+    };
+    
+    // Submit the form data
+    onSubmit(formattedData);
   };
 
   return (
