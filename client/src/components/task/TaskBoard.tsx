@@ -14,10 +14,9 @@ import { Plus } from "lucide-react";
 
 interface TaskBoardProps {
   boardId: number;
-  onAddCategory: () => void;
 }
 
-export default function TaskBoard({ boardId, onAddCategory }: TaskBoardProps) {
+export default function TaskBoard({ boardId }: TaskBoardProps) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);

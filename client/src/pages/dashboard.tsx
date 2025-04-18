@@ -467,8 +467,7 @@ export default function Dashboard() {
         
         {/* Task Board */}
         <TaskBoard 
-          boardId={currentBoard.id} 
-          onAddCategory={() => setIsCategoryModalOpen(true)}
+          boardId={currentBoard.id}
         />
       </div>
       
