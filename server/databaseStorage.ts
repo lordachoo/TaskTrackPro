@@ -187,13 +187,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateTask(id: number, task: Partial<InsertTask>): Promise<Task | undefined> {
-    const [updatedTask] = await db
-      .update(tasks)
-      .set(task)
-      .where(eq(tasks.id, id))
-      .returning();
-    
-    return updatedTask;
+    try {
+      console.log(`Updating task ${id} with:`, task);
+      
+      // Explicitly handle customData field for better JSONB handling
+      if (task.customData !== undefined) {
+        console.log(`Task ${id} has customData update:`, task.customData);
+        
+        // Ensure the JSON is properly formatted for PostgreSQL
+        // This is critical for JSONB fields
+        if (typeof task.customData === 'object') {
+          task.customData = task.customData as any;
+        }
+      }
+      
+      const [updatedTask] = await db
+        .update(tasks)
+        .set(task)
+        .where(eq(tasks.id, id))
+        .returning();
+      
+      console.log(`Successfully updated task ${id}:`, updatedTask);
+      return updatedTask;
+    } catch (error) {
+      console.error(`Error updating task ${id}:`, error);
+      throw error;
+    }
   }
 
   async deleteTask(id: number): Promise<boolean> {

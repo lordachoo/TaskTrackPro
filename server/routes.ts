@@ -292,14 +292,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.put("/tasks/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const validatedData = insertTaskSchema.partial().parse(req.body);
       
-      const updatedTask = await storage.updateTask(id, validatedData);
-      
-      if (!updatedTask) {
+      // First, get the existing task to properly handle customData
+      const existingTask = await storage.getTask(id);
+      if (!existingTask) {
         return res.status(404).json({ message: "Task not found" });
       }
       
+      // Validate the incoming data
+      const validatedData = insertTaskSchema.partial().parse(req.body);
+      
+      // Special handling for customData
+      if (validatedData.customData !== undefined) {
+        console.log('Incoming customData:', validatedData.customData);
+        console.log('Existing customData:', existingTask.customData);
+        
+        // Ensure customData is an object or empty object if it's null
+        if (validatedData.customData === null) {
+          console.log('customData is null, setting to empty object');
+          validatedData.customData = {};
+        } 
+        // If customData is an object with no keys, set it as an empty object
+        else if (typeof validatedData.customData === 'object' && 
+                 Object.keys(validatedData.customData as object).length === 0) {
+          console.log('customData is an empty object');
+          validatedData.customData = {};
+        }
+      }
+      
+      console.log('Final data being sent to storage:', validatedData);
+      
+      // Update the task with the validated data
+      const updatedTask = await storage.updateTask(id, validatedData);
+      
+      if (!updatedTask) {
+        return res.status(404).json({ message: "Task could not be updated" });
+      }
+      
+      console.log('Task updated successfully:', updatedTask);
       res.json(updatedTask);
     } catch (error) {
       if (error instanceof z.ZodError) {
