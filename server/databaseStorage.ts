@@ -23,26 +23,45 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    // Create the user with all fields in the database
+    // Log the input data for debugging
+    console.log("Creating user in database with data:", insertUser);
+    
+    // Create the user with all fields in the database - do not modify email
     const [user] = await db.insert(users).values({
       username: insertUser.username,
       password: insertUser.password,
       fullName: insertUser.fullName || null,
-      email: insertUser.email || null,
-      role: insertUser.role || 'user',
+      // Preserve the exact email from the input
+      email: insertUser.email,
+      // Preserve the exact role from the input
+      role: insertUser.role,
       avatarColor: insertUser.avatarColor || '#6366f1',
       isActive: insertUser.isActive !== undefined ? insertUser.isActive : true
     }).returning();
     
+    console.log("User created in database, returned data:", user);
     return user;
   }
   
   async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
+    // Log the input data for debugging
+    console.log(`Updating user ${id} in database with data:`, userData);
+    
+    // Make sure we're preserving email and role values exactly as provided
+    const cleanedData = { ...userData };
+    if (userData.email !== undefined) {
+      cleanedData.email = userData.email; // Preserve email exactly as provided
+    }
+    if (userData.role !== undefined) {
+      cleanedData.role = userData.role; // Preserve role exactly as provided
+    }
+    
     const [updatedUser] = await db.update(users)
-      .set(userData)
+      .set(cleanedData)
       .where(eq(users.id, id))
       .returning();
     
+    console.log(`User ${id} updated in database, returned data:`, updatedUser);
     return updatedUser;
   }
   
