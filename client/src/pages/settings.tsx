@@ -364,58 +364,7 @@ export default function Settings() {
               
 
               
-              <TabsContent value="account">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Account Settings</CardTitle>
-                    <CardDescription>
-                      Manage your account information
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Name
-                      </label>
-                      <Input 
-                        defaultValue="John Smith" 
-                        className="max-w-md"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Email
-                      </label>
-                      <Input 
-                        type="email" 
-                        defaultValue="john@example.com" 
-                        className="max-w-md"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Password
-                      </label>
-                      <Input 
-                        type="password" 
-                        defaultValue="********" 
-                        className="max-w-md mb-2"
-                      />
-                      <Button variant="link" className="px-0 text-primary">
-                        Change Password
-                      </Button>
-                    </div>
-                    
-                    <div className="pt-4">
-                      <Button>
-                        Save Changes
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+
               
               <TabsContent value="users">
                 <Card>
