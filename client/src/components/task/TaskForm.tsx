@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { processCustomData } from "./CustomDataHandler";
+// @ts-ignore - the typings in this package are known to have issues
 import MDEditor from '@uiw/react-md-editor';
 
 interface TaskFormProps {
@@ -204,11 +205,17 @@ export default function TaskForm({
               <FormItem>
                 <FormLabel>Description</FormLabel>
                 <FormControl>
-                  <Textarea 
-                    {...field} 
-                    placeholder="Describe the task" 
-                    rows={3}
-                  />
+                  <div data-color-mode="light">
+                    <MDEditor
+                      value={field.value}
+                      onChange={(val) => field.onChange(val || '')}
+                      preview="edit"
+                      height={200}
+                      textareaProps={{
+                        placeholder: "Describe the task. Use Markdown for formatting...",
+                      }}
+                    />
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -11,3 +11,37 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Markdown styles */
+.prose img {
+  @apply rounded-lg;
+}
+
+.prose pre {
+  @apply bg-gray-800 text-white p-4 rounded-lg;
+}
+
+.prose code:not(pre code) {
+  @apply bg-gray-100 px-1 py-0.5 rounded text-gray-800;
+}
+
+.prose a {
+  @apply text-blue-600 hover:text-blue-800 underline;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-gray-300 pl-4 italic;
+}
+
+/* MDEditor custom styling */
+.w-md-editor {
+  @apply rounded-md border border-gray-300 !important;
+}
+
+.w-md-editor-toolbar {
+  @apply border-gray-300 !important;
+}
+
+.w-md-editor-text {
+  @apply text-gray-700 !important;
+}
