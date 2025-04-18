@@ -521,33 +521,63 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
     
     // Handle column reordering
     if (type === 'column') {
-      // Extract the category ID from the draggableId
-      const categoryId = parseInt(draggableId.replace('column-', ''));
-      
-      // Create a new array of categories
-      const newCategories = [...categories];
-      
-      // Find the category being moved
-      const categoryToMove = newCategories.find(c => c.id === categoryId);
-      if (!categoryToMove) return;
-      
-      // Remove the category from its old position
-      newCategories.splice(source.index, 1);
-      
-      // Insert it at the new position
-      newCategories.splice(destination.index, 0, categoryToMove);
-      
-      // Update the order field of each category
-      const updatedCategories = newCategories.map((category, index) => ({
-        id: category.id,
-        order: index
-      }));
-      
-      // Update categories list
-      queryClient.setQueryData(['/api/boards', boardId, 'categories'], newCategories);
-      
-      // Update the orders in the backend
-      updateCategoryOrdersMutation.mutate(updatedCategories);
+      try {
+        console.log('Column drag detected:', result);
+        
+        // Extract the category ID from the draggableId
+        const categoryId = parseInt(draggableId.replace('column-', ''));
+        console.log(`Moving category ID ${categoryId} from index ${source.index} to ${destination.index}`);
+        
+        // Create a new array of categories
+        const newCategories = [...categories];
+        
+        // Find the category being moved
+        const categoryToMove = newCategories.find(c => c.id === categoryId);
+        if (!categoryToMove) {
+          console.error(`Could not find category with ID ${categoryId}`);
+          return;
+        }
+        
+        console.log('Category being moved:', categoryToMove);
+        
+        // Remove the category from its old position
+        newCategories.splice(source.index, 1);
+        
+        // Insert it at the new position
+        newCategories.splice(destination.index, 0, categoryToMove);
+        
+        // Update the order field of each category
+        const updatedCategories = newCategories.map((category, index) => ({
+          id: category.id,
+          name: category.name, // Preserve name when updating
+          color: category.color, // Preserve color when updating 
+          boardId: category.boardId, // Preserve boardId when updating
+          order: index
+        }));
+        
+        console.log('Updated categories with new order:', updatedCategories);
+        
+        // First update local state to reflect change immediately
+        const categoriesWithUpdatedOrder = newCategories.map((cat, index) => ({
+          ...cat,
+          order: index
+        }));
+        
+        // Update local categories cache with new order for immediate visual feedback
+        queryClient.setQueryData(['/api/boards', boardId, 'categories'], categoriesWithUpdatedOrder);
+        
+        // Update the orders in the backend
+        updateCategoryOrdersMutation.mutate(updatedCategories);
+      } catch (error) {
+        console.error('Error handling column drag:', error);
+        // Refresh from server to ensure consistency
+        queryClient.invalidateQueries({ queryKey: ['/api/boards', boardId, 'categories'] });
+        toast({
+          title: "Error reordering columns",
+          description: "There was a problem reordering columns. Changes may not be saved.",
+          variant: "destructive",
+        });
+      }
       
       return;
     }
@@ -637,14 +667,31 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
   // Mutation to update category orders
   const updateCategoryOrdersMutation = useMutation({
     mutationFn: async (updatedCategories: Array<Partial<Category> & { id: number }>) => {
-      return Promise.all(
-        updatedCategories.map(async ({ id, order }) => {
+      // Log the update operation for debugging
+      console.log('Updating category orders:', updatedCategories);
+      
+      // Process sequentially to avoid race conditions
+      const results = [];
+      for (const { id, order } of updatedCategories) {
+        try {
+          console.log(`Updating category ${id} to order ${order}`);
           const res = await apiRequest('PUT', `/api/categories/${id}`, { order });
-          return res.json();
-        })
-      );
+          const result = await res.json();
+          results.push(result);
+          console.log(`Successfully updated category ${id}`, result);
+        } catch (err) {
+          console.error(`Error updating category ${id}:`, err);
+          throw err; // Re-throw to trigger the onError handler
+        }
+      }
+      return results;
     },
-    onSuccess: () => {
+    onSuccess: (updatedCategories) => {
+      console.log('All categories successfully reordered:', updatedCategories);
+      
+      // Force a refresh from the server to ensure we have the latest order
+      queryClient.invalidateQueries({ queryKey: ['/api/boards', boardId, 'categories'] });
+      
       toast({
         title: "Categories reordered",
         description: "Categories have been reordered successfully.",
