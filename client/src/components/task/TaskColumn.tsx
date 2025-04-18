@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 interface TaskColumnProps {
   category: Category;
   tasks: Task[];
+  boardId: number;
   onAddTask: (categoryId: number) => void;
   onEditTask: (task: Task) => void;
   onArchiveTask: (taskId: number) => void;
@@ -17,6 +18,7 @@ interface TaskColumnProps {
 export default function TaskColumn({
   category,
   tasks,
+  boardId,
   onAddTask,
   onEditTask,
   onArchiveTask,
@@ -95,6 +97,7 @@ export default function TaskColumn({
                 onEdit={onEditTask}
                 onArchive={onArchiveTask}
                 onDelete={onDeleteTask}
+                boardId={boardId}
               />
             ))}
             {provided.placeholder}

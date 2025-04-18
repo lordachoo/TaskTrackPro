@@ -1,6 +1,7 @@
 import { Draggable } from "react-beautiful-dnd";
 import { Task } from "@shared/schema";
 import { ReactNode } from "react";
+import { queryClient } from "@/lib/queryClient";
 
 interface TaskCardProps {
   task: Task;
@@ -9,6 +10,7 @@ interface TaskCardProps {
   onEdit: (task: Task) => void;
   onArchive: (taskId: number) => void;
   onDelete: (taskId: number) => void;
+  boardId: number;
 }
 
 export default function TaskCard({ 
@@ -17,7 +19,8 @@ export default function TaskCard({
   categoryColor,
   onEdit,
   onArchive,
-  onDelete
+  onDelete,
+  boardId
 }: TaskCardProps) {
   const {
     id,
@@ -191,14 +194,21 @@ export default function TaskCard({
             {/* Render custom fields if any */}
             {hasCustomData && (
               <div className="mt-3 pt-3 border-t border-gray-100">
-                {Object.entries(customData as Record<string, unknown>).map(([key, value], index) => (
-                  <div key={index} className="flex justify-between text-xs mt-1">
-                    <span className="text-gray-500">{key}:</span>
-                    <span className="text-gray-700 font-medium">
-                      {renderCustomValue(value)}
-                    </span>
-                  </div>
-                ))}
+                {Object.entries(customData as Record<string, unknown>)
+                  .filter(([key]) => {
+                    // Check if the custom field still exists in the board
+                    const validFields = queryClient.getQueryData<any[]>(['/api/boards', boardId, 'customFields']) || [];
+                    return validFields.some(field => field.name === key);
+                  })
+                  .map(([key, value], index) => (
+                    <div key={index} className="flex justify-between text-xs mt-1">
+                      <span className="text-gray-500">{key}:</span>
+                      <span className="text-gray-700 font-medium">
+                        {renderCustomValue(value)}
+                      </span>
+                    </div>
+                  ))
+                }
               </div>
             )}
           </div>
