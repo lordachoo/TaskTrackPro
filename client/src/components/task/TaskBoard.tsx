@@ -364,6 +364,33 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
     deleteCategoryMutation.mutate(categoryId);
   };
   
+  // Create category mutation
+  const createCategoryMutation = useMutation({
+    mutationFn: async (newCategory: Partial<Category>) => {
+      const res = await apiRequest('POST', '/api/categories', newCategory);
+      return res.json();
+    },
+    onSuccess: () => {
+      // Invalidate categories query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['/api/boards', boardId, 'categories'] });
+      
+      toast({
+        title: "Category created",
+        description: "Category has been created successfully.",
+      });
+      
+      setIsCategoryModalOpen(false);
+    },
+    onError: (error) => {
+      console.error('Error creating category:', error);
+      toast({
+        title: "Failed to create category",
+        description: "There was an error creating the category. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+  
   // Handle submitting the category form
   const handleCategorySubmit = (categoryData: Partial<Category> & { boardId: number }) => {
     if (isEditMode && selectedCategory) {
@@ -372,9 +399,8 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
         id: selectedCategory.id
       });
     } else {
-      // If it's a new category, use the parent component's onAddCategory handler
-      // which should be connected to a createCategory mutation
-      onAddCategory();
+      // Create a new category directly
+      createCategoryMutation.mutate(categoryData);
     }
   };
 
