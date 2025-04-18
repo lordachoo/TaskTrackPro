@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +50,23 @@ export default function TopNav({
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(boardName);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const { user } = useAuth();
+  
+  // Get user initials for avatar
+  const getInitials = () => {
+    if (!user) return "?";
+    
+    if (user.fullName) {
+      return user.fullName
+        .split(" ")
+        .map(name => name[0])
+        .join("")
+        .toUpperCase()
+        .substring(0, 2);
+    }
+    
+    return user.username.substring(0, 2).toUpperCase();
+  };
 
   const handleEditClick = () => {
     setIsEditing(true);
@@ -256,9 +274,12 @@ export default function TopNav({
             )}
             
             <div className="md:hidden">
-              <button className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                <span className="text-white font-medium">JS</span>
-              </button>
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center" 
+                style={{ backgroundColor: user?.avatarColor || "#6366f1" }}
+              >
+                <span className="text-white font-medium">{getInitials()}</span>
+              </div>
             </div>
           </div>
         </div>
