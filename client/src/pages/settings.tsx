@@ -206,8 +206,6 @@ export default function Settings() {
             <Tabs defaultValue="fields">
               <TabsList className="mb-6">
                 <TabsTrigger value="fields">Custom Fields</TabsTrigger>
-                <TabsTrigger value="display">Display Settings</TabsTrigger>
-                <TabsTrigger value="account">Account</TabsTrigger>
                 <TabsTrigger value="users">User Management</TabsTrigger>
               </TabsList>
               
@@ -364,86 +362,7 @@ export default function Settings() {
                 </Card>
               </TabsContent>
               
-              <TabsContent value="display">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Display Settings</CardTitle>
-                    <CardDescription>
-                      Customize the appearance of your task board.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Theme
-                      </label>
-                      <div className="flex space-x-3">
-                        <Button 
-                          variant="outline" 
-                          className="flex-1 border-2 border-primary"
-                        >
-                          <span className="w-4 h-4 bg-white rounded-full mr-2 border border-gray-300"></span>
-                          Light
-                        </Button>
-                        <Button variant="outline" className="flex-1">
-                          <span className="w-4 h-4 bg-gray-800 rounded-full mr-2 border border-gray-300"></span>
-                          Dark
-                        </Button>
-                        <Button variant="outline" className="flex-1">
-                          <span className="w-4 h-4 rounded-full mr-2 bg-gradient-to-r from-gray-100 to-gray-800 border border-gray-300"></span>
-                          System
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Primary Color
-                      </label>
-                      <div className="flex space-x-3">
-                        <Button
-                          variant="outline"
-                          className="flex-1 bg-indigo-500 text-white hover:bg-indigo-600"
-                        >
-                          Indigo
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="flex-1 bg-purple-500 text-white hover:bg-purple-600"
-                        >
-                          Purple
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="flex-1 bg-blue-500 text-white hover:bg-blue-600"
-                        >
-                          Blue
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Density
-                      </label>
-                      <div className="flex space-x-3">
-                        <Button variant="outline" className="flex-1">
-                          Compact
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          className="flex-1 border-2 border-primary"
-                        >
-                          Comfortable
-                        </Button>
-                        <Button variant="outline" className="flex-1">
-                          Spacious
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+
               
               <TabsContent value="account">
                 <Card>
