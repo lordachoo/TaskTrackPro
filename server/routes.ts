@@ -526,8 +526,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Username already exists" });
       }
       
-      const validatedData = insertUserSchema.parse(req.body);
+      console.log("Creating user with data:", req.body);
+      
+      // Ensure explicit values for role and email
+      const userData = {
+        ...req.body,
+        // Make sure to use the actual values provided by the form, not defaults or modifications
+        role: req.body.role, 
+        email: req.body.email
+      };
+      
+      const validatedData = insertUserSchema.parse(userData);
+      console.log("Validated user data:", validatedData);
+      
       const user = await storage.createUser(validatedData);
+      console.log("User created in database:", user);
       
       // Remove password from response
       const { password, ...userWithoutPassword } = user;
@@ -535,6 +548,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(userWithoutPassword);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("Validation error:", error.errors);
         return res.status(400).json({ message: "Invalid user data", errors: error.errors });
       }
       console.error("Error creating user:", error);
@@ -560,10 +574,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const validatedData = insertUserSchema.partial().parse(req.body);
+      console.log("Updating user with data:", req.body);
+      
+      // Ensure explicit values for role and email from request
+      const userData = {
+        ...req.body,
+        // Make sure to use the values from the form as is
+        role: req.body.role,
+        email: req.body.email
+      };
+      
+      const validatedData = insertUserSchema.partial().parse(userData);
+      console.log("Validated update data:", validatedData);
       
       // Update the user
       const updatedUser = await storage.updateUser(id, validatedData);
+      console.log("Updated user in database:", updatedUser);
       
       if (!updatedUser) {
         return res.status(500).json({ message: "Failed to update user" });
@@ -575,6 +601,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(userWithoutPassword);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("Validation error:", error.errors);
         return res.status(400).json({ message: "Invalid user data", errors: error.errors });
       }
       console.error("Error updating user:", error);
