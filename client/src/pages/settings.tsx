@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
+import { Plus, Trash2 } from "lucide-react";
 import { 
   Card, 
   CardContent, 
@@ -221,7 +222,7 @@ export default function Settings() {
                       onClick={() => setIsAddingField(true)}
                       className="ml-auto"
                     >
-                      <i className="ri-add-line mr-1"></i>
+                      <Plus className="w-4 h-4 mr-1" />
                       Add Field
                     </Button>
                   </CardHeader>
@@ -348,7 +349,7 @@ export default function Settings() {
                                   onClick={() => handleDeleteField(field.id)}
                                   disabled={deleteCustomFieldMutation.isPending}
                                 >
-                                  <i className="ri-delete-bin-line mr-1"></i>
+                                  <Trash2 className="w-4 h-4 mr-1" />
                                   Delete
                                 </Button>
                               </TableCell>
