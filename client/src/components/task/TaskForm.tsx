@@ -105,15 +105,21 @@ export default function TaskForm({
     }
   }, [initialData, initialCategory, categories, form]);
 
-  // Sample assignees for demo
-  const availableAssignees = [
-    { id: "AS", name: "Amy Smith" },
-    { id: "JD", name: "John Doe" },
-    { id: "TM", name: "Tom Miller" },
-    { id: "RK", name: "Rachel Kim" },
-    { id: "MD", name: "Michael Davis" },
-    { id: "LR", name: "Lisa Rodriguez" }
-  ];
+  // Fetch users for assignees
+  const { data: users = [], isLoading: isLoadingUsers } = useQuery({
+    queryKey: ['/api/users'],
+    queryFn: async () => {
+      const res = await fetch('/api/users');
+      if (!res.ok) throw new Error('Failed to load users');
+      return res.json();
+    }
+  });
+  
+  // Format users for the assignee selector
+  const availableAssignees = users.map((user: any) => ({
+    id: user.id.toString(), // Convert to string since the form expects string IDs
+    name: user.fullName || user.username
+  }));
 
   const handleFormSubmit = (data: TaskFormValues) => {
     // Make a deep copy of the form data to avoid reference issues
@@ -122,16 +128,23 @@ export default function TaskForm({
     // Use the CustomDataHandler utility to process the customData
     const processedCustomData = processCustomData(formData.customData);
     
-    // Create the final formatted data with the processed customData
+    // Convert string IDs to integer IDs for assignees
+    const assignees = formData.assignees.map((id: string) => parseInt(id, 10));
+    
+    // Create the final formatted data with the processed customData and converted assignees
     const formattedData = {
       ...formData,
-      customData: processedCustomData
+      customData: processedCustomData,
+      assignees: assignees
     };
     
     // Log data at each step for debugging
     console.log("Raw form data:", data);
     console.log("Processed customData:", processedCustomData);
+    console.log("Converted assignees:", assignees);
     console.log("Final data being submitted:", formattedData);
+    
+    console.log("Task data to submit:", formattedData);
     
     // Submit the form data
     onSubmit(formattedData);
