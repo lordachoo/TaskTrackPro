@@ -23,7 +23,7 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import Sidebar from "@/components/layout/Sidebar";
 import TopNav from "@/components/layout/TopNav";
-import ControlBar from "@/components/layout/ControlBar";
+import ControlBar, { SearchOptions } from "@/components/layout/ControlBar";
 import TaskBoard from "@/components/task/TaskBoard";
 import { Board, Category } from "@shared/schema";
 
@@ -39,7 +39,11 @@ export default function Dashboard() {
   // State hooks - keep these at the top
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOptions, setSearchOptions] = useState<SearchOptions>({
+    query: "",
+    searchAllBoards: false,
+    searchInDescription: false
+  });
   const [activeBoardId, setActiveBoardId] = useState<number | undefined>(undefined);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [boardSelectorOpen, setBoardSelectorOpen] = useState(false);
@@ -345,10 +349,13 @@ export default function Dashboard() {
     setIsDeleteDialogOpen(false);
   };
 
-  // Placeholder handlers
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    // In a real implementation, filter tasks by query
+  // Search handler
+  const handleSearch = (options: SearchOptions) => {
+    setSearchOptions(options);
+    console.log('Search options:', options);
+    
+    // Dispatch event with search options for TaskBoard to handle
+    window.dispatchEvent(new CustomEvent('applyTaskSearch', { detail: options }));
   };
 
   const handleFilter = () => {
@@ -467,6 +474,7 @@ export default function Dashboard() {
           }}
           onCreateBoard={handleCreateBoard}
           categories={categoriesData || []}
+          currentBoardId={currentBoard.id}
         />
         
         {/* Task Board */}
