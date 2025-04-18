@@ -32,7 +32,7 @@ const taskFormSchema = z.object({
   dueDate: z.string().optional(),
   priority: z.string().optional(),
   categoryId: z.coerce.number(),
-  assignees: z.array(z.string()).default([]),
+  assignees: z.array(z.number()).default([]),
   customData: z.record(z.string(), z.any()).optional()
 });
 
@@ -115,9 +115,15 @@ export default function TaskForm({
     }
   });
   
+  // Define the assignee type
+  interface Assignee {
+    id: number;
+    name: string;
+  }
+
   // Format users for the assignee selector
-  const availableAssignees = users.map((user: any) => ({
-    id: user.id.toString(), // Convert to string since the form expects string IDs
+  const availableAssignees = users.map((user: any): Assignee => ({
+    id: user.id, // Keep as number since we're now using number IDs
     name: user.fullName || user.username
   }));
 
@@ -128,20 +134,18 @@ export default function TaskForm({
     // Use the CustomDataHandler utility to process the customData
     const processedCustomData = processCustomData(formData.customData);
     
-    // Convert string IDs to integer IDs for assignees
-    const assignees = formData.assignees.map((id: string) => parseInt(id, 10));
+    // No need to convert assignees anymore as they're already numbers
     
-    // Create the final formatted data with the processed customData and converted assignees
+    // Create the final formatted data with the processed customData
     const formattedData = {
       ...formData,
-      customData: processedCustomData,
-      assignees: assignees
+      customData: processedCustomData
     };
     
     // Log data at each step for debugging
     console.log("Raw form data:", data);
     console.log("Processed customData:", processedCustomData);
-    console.log("Converted assignees:", assignees);
+    console.log("Assignees:", data.assignees);
     console.log("Final data being submitted:", formattedData);
     
     console.log("Task data to submit:", formattedData);
@@ -290,7 +294,7 @@ export default function TaskForm({
             <div>
               <FormLabel>Assignees</FormLabel>
               <div className="grid grid-cols-2 gap-2 mt-2">
-                {availableAssignees.map((assignee) => (
+                {availableAssignees.map((assignee: Assignee) => (
                   <div key={assignee.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={`assignee-${assignee.id}`}
