@@ -115,14 +115,18 @@ export default function TaskForm({
   ];
 
   const handleFormSubmit = (data: TaskFormValues) => {
-    // Log the form data to see what is being submitted
-    console.log("Submitting form data:", data);
+    // Make a clean copy of the customData to ensure we're not carrying over references
+    const cleanCustomData = { ...(data.customData || {}) };
     
-    // Make sure customData is included in the submission
+    // Create a fresh copy of the entire data object
     const formattedData = {
       ...data,
-      customData: data.customData || {}
+      customData: cleanCustomData
     };
+    
+    // Log the data for debugging
+    console.log("Raw form data:", data);
+    console.log("Formatted data being submitted:", formattedData);
     
     // Submit the form data
     onSubmit(formattedData);
@@ -304,11 +308,10 @@ export default function TaskForm({
                         type="text"
                         value={fieldValue}
                         onChange={(e) => {
-                          const customData = form.getValues('customData') || {};
-                          form.setValue('customData', {
-                            ...customData,
-                            [fieldKey]: e.target.value
-                          });
+                          const customData = { ...(form.getValues('customData') || {}) };
+                          customData[fieldKey] = e.target.value; 
+                          form.setValue('customData', customData);
+                          console.log('Updated customData:', form.getValues('customData'));
                         }}
                       />
                     )}
@@ -402,21 +405,27 @@ export default function TaskForm({
                       size="sm"
                       className="text-gray-400 hover:text-red-500 text-sm mt-2 flex items-center self-end"
                       onClick={() => {
-                        // Get current customData and remove this field
-                        const customData = form.getValues('customData') || {};
-                        const { [fieldKey]: _, ...rest } = customData;
+                        // Create a fresh copy of customData to ensure we're not referencing the same object
+                        const customData = { ...(form.getValues('customData') || {}) };
                         
-                        // Update the form with the new customData object
-                        form.setValue('customData', rest);
+                        // Delete the property directly
+                        delete customData[fieldKey];
                         
-                        // Log the removal for debugging
-                        console.log(`Removed custom field: ${fieldKey}`, rest);
+                        // Set the new customData object
+                        form.setValue('customData', customData);
                         
-                        // Show toast notification for feedback
+                        // Force form to update
+                        form.trigger('customData');
+                        
+                        // Log for debugging
+                        console.log(`Removed custom field: ${fieldKey}`, customData);
+                        console.log('Full form values:', form.getValues());
+                        
+                        // Show toast notification
                         toast({
                           title: "Field removed",
                           description: `${fieldKey} has been removed from this task.`,
-                          duration: 3000
+                          duration: 2000
                         });
                       }}
                     >
