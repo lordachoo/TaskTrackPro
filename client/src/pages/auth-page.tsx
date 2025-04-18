@@ -17,8 +17,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { z } from "zod";
 import { InsertUser, insertUserSchema } from "@shared/schema";
-import { Loader2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { Redirect } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Login form schema
 const loginSchema = z.object({
@@ -50,6 +52,35 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 export default function AuthPage() {
   const { toast } = useToast();
   const { user, loginMutation, registerMutation, isLoading } = useAuth();
+  
+  // Check if registrations are allowed
+  const { data: registrationSetting, isLoading: isSettingLoading } = useQuery({
+    queryKey: ['/api/settings', 'allow_registrations'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/settings/allow_registrations');
+        if (!res.ok) {
+          if (res.status === 404) {
+            // If setting doesn't exist yet, return default
+            return { key: 'allow_registrations', value: 'true' };
+          }
+          throw new Error('Failed to fetch registration setting');
+        }
+        return res.json();
+      } catch (error) {
+        console.error('Error fetching registration setting:', error);
+        // Return a default if there's an error
+        return { key: 'allow_registrations', value: 'true' };
+      }
+    },
+    // Don't retry for 401 or 403 errors
+    retry: (failureCount, error: any) => {
+      if (error?.status === 401 || error?.status === 403) return false;
+      return failureCount < 3;
+    }
+  });
+  
+  const registrationsEnabled = registrationSetting?.value === 'true';
   
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -85,6 +116,16 @@ export default function AuthPage() {
 
   // Handle registration submission
   const onRegisterSubmit = (data: RegisterFormValues) => {
+    // If registrations are disabled, don't proceed
+    if (!registrationsEnabled) {
+      toast({
+        title: "Registration disabled",
+        description: "New user registration is currently disabled. Please contact an administrator.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     // Remove confirmPassword as it's not part of the API request
     const { confirmPassword, ...userData } = data;
 
@@ -171,16 +212,25 @@ export default function AuthPage() {
 
           {/* Register Tab */}
           <TabsContent value="register">
-            <Card>
+            <Card className={!registrationsEnabled ? "opacity-70" : ""}>
               <CardHeader>
                 <CardTitle>Create Account</CardTitle>
                 <CardDescription>
                   Register a new account to get started
                 </CardDescription>
+                {!registrationsEnabled && (
+                  <Alert variant="destructive" className="mt-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Registration Disabled</AlertTitle>
+                    <AlertDescription>
+                      New user registration is currently disabled. Please contact an administrator.
+                    </AlertDescription>
+                  </Alert>
+                )}
               </CardHeader>
               <Form {...registerForm}>
                 <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)}>
-                  <CardContent className="space-y-4">
+                  <CardContent className={`space-y-4 ${!registrationsEnabled ? "pointer-events-none" : ""}`}>
                     <FormField
                       control={registerForm.control}
                       name="username"
@@ -188,7 +238,11 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Username</FormLabel>
                           <FormControl>
-                            <Input placeholder="Choose a username" {...field} />
+                            <Input 
+                              placeholder="Choose a username" 
+                              {...field} 
+                              disabled={!registrationsEnabled} 
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -201,7 +255,11 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Full Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter your full name" {...field} />
+                            <Input 
+                              placeholder="Enter your full name" 
+                              {...field} 
+                              disabled={!registrationsEnabled} 
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -214,7 +272,12 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input type="email" placeholder="Enter your email" {...field} />
+                            <Input 
+                              type="email" 
+                              placeholder="Enter your email" 
+                              {...field} 
+                              disabled={!registrationsEnabled} 
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -227,7 +290,12 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Password</FormLabel>
                           <FormControl>
-                            <Input type="password" placeholder="Create a password" {...field} />
+                            <Input 
+                              type="password" 
+                              placeholder="Create a password" 
+                              {...field} 
+                              disabled={!registrationsEnabled} 
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -240,7 +308,12 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Confirm Password</FormLabel>
                           <FormControl>
-                            <Input type="password" placeholder="Confirm your password" {...field} />
+                            <Input 
+                              type="password" 
+                              placeholder="Confirm your password" 
+                              {...field} 
+                              disabled={!registrationsEnabled} 
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -251,13 +324,15 @@ export default function AuthPage() {
                     <Button
                       type="submit"
                       className="w-full"
-                      disabled={registerMutation.isPending}
+                      disabled={registerMutation.isPending || !registrationsEnabled}
                     >
                       {registerMutation.isPending ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Creating account...
                         </>
+                      ) : !registrationsEnabled ? (
+                        "Registration Disabled"
                       ) : (
                         "Register"
                       )}
