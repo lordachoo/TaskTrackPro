@@ -178,7 +178,7 @@ export default function UserList() {
                   </TableCell>
                   <TableCell>{user.fullName || user.username}</TableCell>
                   <TableCell>{user.username}</TableCell>
-                  <TableCell>{user.email || `${user.username}@example.com`}</TableCell>
+                  <TableCell>{user.email}</TableCell>
                   <TableCell>
                     <Badge 
                       variant={user.role === 'admin' ? "destructive" : "outline"}
@@ -208,7 +208,7 @@ export default function UserList() {
                         size="icon"
                         onClick={() => handleDelete(user)}
                         title="Delete User"
-                        disabled={user.role === 'admin'} // Prevent deleting admin users
+                        disabled={user.username === 'admin' && user.id === 1} // Only prevent deleting the primary admin
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

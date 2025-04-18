@@ -619,9 +619,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Don't allow deleting the admin user
-      if (user.role === "admin") {
-        return res.status(403).json({ message: "Cannot delete admin user" });
+      // Only protect the built-in admin user with ID 1
+      if (user.username === "admin" && id === 1) {
+        return res.status(403).json({ message: "Cannot delete the primary admin user" });
       }
       
       // Delete the user
