@@ -4,7 +4,8 @@ import {
   Category, InsertCategory, 
   CustomField, InsertCustomField,
   Task, InsertTask,
-  users, boards, categories, customFields, tasks
+  SystemSetting,
+  users, boards, categories, customFields, tasks, systemSettings
 } from "@shared/schema";
 import { IStorage } from "./storage";
 import { db } from "./db";
@@ -335,5 +336,42 @@ export class DatabaseStorage implements IStorage {
     }
     
     return allArchivedTasks;
+  }
+  
+  // System Settings methods
+  async getSystemSetting(key: string): Promise<SystemSetting | undefined> {
+    console.log(`Getting system setting for key: ${key}`);
+    const [setting] = await db.select().from(systemSettings).where(eq(systemSettings.key, key));
+    return setting;
+  }
+  
+  async updateSystemSetting(key: string, value: string): Promise<SystemSetting | undefined> {
+    console.log(`Updating system setting: ${key} = ${value}`);
+    
+    // Check if the setting exists first
+    const existing = await this.getSystemSetting(key);
+    
+    if (existing) {
+      // Update
+      const [updated] = await db
+        .update(systemSettings)
+        .set({ value, updatedAt: new Date() })
+        .where(eq(systemSettings.key, key))
+        .returning();
+      
+      return updated;
+    } else {
+      // Insert
+      const [newSetting] = await db
+        .insert(systemSettings)
+        .values({ 
+          key, 
+          value, 
+          description: `Setting added on ${new Date().toISOString()}` 
+        })
+        .returning();
+      
+      return newSetting;
+    }
   }
 }

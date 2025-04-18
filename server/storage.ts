@@ -62,6 +62,7 @@ export class MemStorage implements IStorage {
   private categories: Map<number, Category>;
   private customFields: Map<number, CustomField>;
   private tasks: Map<number, Task>;
+  private settings: Map<string, SystemSetting>;
   
   private userId = 1;
   private boardId = 1;
@@ -75,6 +76,7 @@ export class MemStorage implements IStorage {
     this.categories = new Map();
     this.customFields = new Map();
     this.tasks = new Map();
+    this.settings = new Map();
 
     // Create a default admin user
     const adminUser: InsertUser = {
@@ -368,6 +370,40 @@ export class MemStorage implements IStorage {
     return Array.from(this.tasks.values()).filter(
       (task) => task.isArchived && categoryIds.includes(task.categoryId)
     );
+  }
+  
+  // System Settings methods
+  async getSystemSetting(key: string): Promise<SystemSetting | undefined> {
+    return this.settings.get(key);
+  }
+  
+  async updateSystemSetting(key: string, value: string): Promise<SystemSetting | undefined> {
+    const now = new Date();
+    
+    // Check if setting exists
+    const existingSetting = this.settings.get(key);
+    
+    if (existingSetting) {
+      // Update
+      const updatedSetting: SystemSetting = {
+        ...existingSetting,
+        value,
+        updatedAt: now
+      };
+      this.settings.set(key, updatedSetting);
+      return updatedSetting;
+    } else {
+      // Create new
+      const newSetting: SystemSetting = {
+        id: this.settings.size + 1,
+        key,
+        value,
+        description: `Setting added on ${now.toISOString()}`,
+        updatedAt: now
+      };
+      this.settings.set(key, newSetting);
+      return newSetting;
+    }
   }
 }
 
