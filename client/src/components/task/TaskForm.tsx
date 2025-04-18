@@ -13,8 +13,7 @@ import { DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import CustomFieldForm from "./CustomFieldForm";
-import { processCustomData, removeCustomDataField } from "./CustomDataHandler";
+import { processCustomData } from "./CustomDataHandler";
 
 interface TaskFormProps {
   boardId: number;
@@ -48,8 +47,7 @@ export default function TaskForm({
   onSubmit,
   onCancel
 }: TaskFormProps) {
-  const [showCustomFieldForm, setShowCustomFieldForm] = useState(false);
-  // State to trigger re-renders when custom fields are removed
+  // We still need the forceRender state for the component to update when customData changes
   const [forceRender, setForceRender] = useState(0);
   
   // Import toast for notifications
@@ -308,17 +306,7 @@ export default function TaskForm({
             </div>
           </div>
           
-          <div className="mb-4">
-            <Button
-              type="button"
-              variant="link"
-              className="p-0 text-primary hover:text-primary/80 text-sm flex items-center"
-              onClick={() => setShowCustomFieldForm(true)}
-            >
-              <i className="ri-add-line mr-1"></i>
-              <span>Add Custom Field</span>
-            </Button>
-          </div>
+          {/* Custom field management is now in Settings > Custom Fields */}
           
           {/* Render custom fields - with scrollable container */}
           {customFields.length > 0 && (
@@ -435,65 +423,7 @@ export default function TaskForm({
                         }}
                       />
                     )}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="text-gray-400 hover:text-red-500 text-sm mt-2 flex items-center self-end"
-                      onClick={() => {
-                        // Deep clone the current customData to avoid reference issues
-                        const clonedData = JSON.parse(JSON.stringify(form.getValues('customData') || {}));
-                        
-                        // Log before removal for debugging
-                        console.log('Before removal:', clonedData);
-                        
-                        // Delete the field directly
-                        delete clonedData[fieldName];
-                        
-                        // Log after removal for debugging
-                        console.log('After removal:', clonedData);
-                        
-                        // Update the form state with new data
-                        form.setValue('customData', clonedData, { 
-                          shouldDirty: true,
-                          shouldTouch: true,
-                          shouldValidate: true 
-                        });
-                        
-                        // Increment forceRender to trigger UI update
-                        setForceRender(prev => prev + 1);
-                        
-                        // Verify field was removed from form state
-                        const verifyData = form.getValues('customData');
-                        console.log('Form data after removal:', verifyData);
-                        
-                        // Show a notification
-                        toast({
-                          title: "Field removed",
-                          description: `${field.name} has been removed from this task.`,
-                          duration: 2000
-                        });
-                      }}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="mr-1"
-                      >
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        <line x1="10" y1="11" x2="10" y2="17"></line>
-                        <line x1="14" y1="11" x2="14" y2="17"></line>
-                      </svg>
-                      <span>Remove</span>
-                    </Button>
+                    {/* Field removal has been moved to Settings > Custom Fields */}
                   </div>
                 );
               })}
@@ -514,18 +444,6 @@ export default function TaskForm({
           </DialogFooter>
         </form>
       </Form>
-      
-      {showCustomFieldForm && (
-        <CustomFieldForm
-          boardId={boardId}
-          onClose={() => setShowCustomFieldForm(false)}
-          onSuccess={() => {
-            setShowCustomFieldForm(false);
-            // Explicitly refetch custom fields
-            refetchCustomFields();
-          }}
-        />
-      )}
     </>
   );
 }

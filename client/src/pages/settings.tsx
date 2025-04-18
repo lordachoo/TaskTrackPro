@@ -27,6 +27,13 @@ import { Board, CustomField } from "@shared/schema";
 
 export default function Settings() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAddingField, setIsAddingField] = useState(false);
+  const [newField, setNewField] = useState<{
+    name: string;
+    type: string;
+    options: string | null;
+    boardId: number;
+  }>({ name: '', type: '', options: null, boardId: 1 }); // Default to 1, will update after boards load
   const { toast } = useToast();
 
   // Fetch the first board (for demo purposes)
@@ -91,6 +98,64 @@ export default function Settings() {
     }
   });
 
+  // Add custom field mutation
+  const addFieldMutation = useMutation({
+    mutationFn: async (fieldData: typeof newField) => {
+      const res = await apiRequest('POST', '/api/customFields', fieldData);
+      return res.json();
+    },
+    onSuccess: (newField: CustomField) => {
+      toast({
+        title: "Custom field added",
+        description: `The custom field "${newField.name}" has been added to the board.`,
+      });
+      
+      // Update local cache
+      queryClient.setQueryData(
+        ['/api/boards', currentBoard.id, 'customFields'],
+        (oldData: CustomField[] | undefined) => {
+          if (!oldData) return [newField];
+          return [...oldData, newField];
+        }
+      );
+      
+      // Reset form and close it
+      setIsAddingField(false);
+      setNewField({ name: '', type: '', options: null, boardId: currentBoard.id });
+    },
+    onError: (error) => {
+      console.error('Error adding custom field:', error);
+      toast({
+        title: "Failed to add custom field",
+        description: "There was an error adding the custom field. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleAddField = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Ensure we have the current board ID
+    const fieldData = {
+      ...newField,
+      boardId: currentBoard.id
+    };
+    
+    // Validate options for select type
+    if (fieldData.type === 'select' && (!fieldData.options || fieldData.options.trim() === '')) {
+      toast({
+        title: "Validation error",
+        description: "Please provide comma-separated options for the dropdown field.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Submit the mutation
+    addFieldMutation.mutate(fieldData);
+  };
+
   const handleDeleteField = (fieldId: number) => {
     if (window.confirm("Are you sure you want to delete this custom field? This may affect existing tasks.")) {
       deleteCustomFieldMutation.mutate(fieldId);
@@ -145,18 +210,110 @@ export default function Settings() {
               
               <TabsContent value="fields">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Custom Fields</CardTitle>
-                    <CardDescription>
-                      Manage custom fields that can be added to tasks.
-                    </CardDescription>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Custom Fields</CardTitle>
+                      <CardDescription>
+                        Manage custom fields that can be added to tasks.
+                      </CardDescription>
+                    </div>
+                    <Button 
+                      onClick={() => setIsAddingField(true)}
+                      className="ml-auto"
+                    >
+                      <i className="ri-add-line mr-1"></i>
+                      Add Field
+                    </Button>
                   </CardHeader>
                   <CardContent>
-                    {customFields.length === 0 ? (
+                    {isAddingField && (
+                      <div className="mb-8 p-4 border rounded-md bg-gray-50">
+                        <h3 className="text-lg font-medium mb-4">Add New Custom Field</h3>
+                        <form onSubmit={handleAddField} className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Field Name
+                              </label>
+                              <Input
+                                value={newField.name}
+                                onChange={(e) => setNewField({ ...newField, name: e.target.value })}
+                                placeholder="Enter field name"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Field Type
+                              </label>
+                              <select
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                value={newField.type}
+                                onChange={(e) => {
+                                  setNewField({ 
+                                    ...newField, 
+                                    type: e.target.value,
+                                    // Reset options when changing type
+                                    options: e.target.value === 'select' ? newField.options : null
+                                  });
+                                }}
+                                required
+                              >
+                                <option value="">Select a type</option>
+                                <option value="text">Text</option>
+                                <option value="number">Number</option>
+                                <option value="date">Date</option>
+                                <option value="select">Dropdown</option>
+                                <option value="checkbox">Checkbox</option>
+                                <option value="url">URL</option>
+                              </select>
+                            </div>
+                          </div>
+                          
+                          {newField.type === 'select' && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Options (comma-separated)
+                              </label>
+                              <Input
+                                value={newField.options || ''}
+                                onChange={(e) => setNewField({ ...newField, options: e.target.value })}
+                                placeholder="Option 1, Option 2, Option 3"
+                                required
+                              />
+                              <p className="text-xs text-gray-500 mt-1">
+                                Enter dropdown options separated by commas
+                              </p>
+                            </div>
+                          )}
+                          
+                          <div className="flex gap-2 justify-end">
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              onClick={() => {
+                                setIsAddingField(false);
+                                setNewField({ name: '', type: '', options: null, boardId: currentBoard.id });
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button 
+                              type="submit"
+                              disabled={addFieldMutation.isPending || !newField.name || !newField.type}
+                            >
+                              {addFieldMutation.isPending ? 'Adding...' : 'Add Field'}
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
+                    
+                    {customFields.length === 0 && !isAddingField ? (
                       <div className="text-center py-6 text-gray-500">
                         <p>No custom fields found.</p>
                         <p className="text-sm mt-1">
-                          Add custom fields from the task creation form.
+                          Click the "Add Field" button to create your first custom field.
                         </p>
                       </div>
                     ) : (
