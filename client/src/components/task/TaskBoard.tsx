@@ -351,6 +351,7 @@ export default function TaskBoard({ boardId, onAddCategory }: TaskBoardProps) {
               key={category.id}
               category={category}
               tasks={categoryTasks[category.id] || []}
+              boardId={boardId}
               onAddTask={handleAddTask}
               onEditTask={handleEditTask}
               onArchiveTask={(taskId) => archiveTaskMutation.mutate(taskId)}
