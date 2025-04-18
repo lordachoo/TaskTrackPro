@@ -1,7 +1,8 @@
 import { Draggable } from "react-beautiful-dnd";
-import { Task } from "@shared/schema";
+import { Task, User } from "@shared/schema";
 import { ReactNode, useState, useRef, useEffect } from "react";
 import { queryClient } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 import { Archive, Trash2, MoreVertical, Calendar, MessageSquare, GripVertical } from "lucide-react";
 
 interface TaskCardProps {
@@ -23,6 +24,22 @@ export default function TaskCard({
   onDelete,
   boardId
 }: TaskCardProps) {
+  // Fetch users for assignee display
+  const { data: users = [] } = useQuery({
+    queryKey: ['/api/users'],
+    queryFn: async () => {
+      const res = await fetch('/api/users');
+      if (!res.ok) throw new Error('Failed to load users');
+      return res.json();
+    }
+  });
+  
+  // Create a map of user IDs to user objects for quick lookup
+  const userMap = new Map<number, User>();
+  users.forEach((user: User) => {
+    userMap.set(user.id, user);
+  });
+  
   const {
     id,
     title,
@@ -51,28 +68,47 @@ export default function TaskCard({
     return priority.charAt(0).toUpperCase() + priority.slice(1);
   };
 
-  const getAssigneeInitials = (assignee: string) => {
-    if (assignee.length <= 2) return assignee;
+  const getUserInitials = (userId: number) => {
+    const user = userMap.get(userId);
+    if (!user) return '??';
     
-    // If it's longer than 2 chars, assume it's a name and get initials
-    const parts = assignee.split(' ');
-    if (parts.length === 1) return assignee.substring(0, 2).toUpperCase();
+    const name = user.fullName || user.username;
+    if (!name) return '??';
+    
+    // If it's a short name, use the first two characters
+    if (name.length <= 2) return name.toUpperCase();
+    
+    // Get initials from full name
+    const parts = name.split(' ');
+    if (parts.length === 1) return name.substring(0, 2).toUpperCase();
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   };
 
-  const getAssigneeColor = (assignee: string) => {
+  const getUserDisplayName = (userId: number) => {
+    const user = userMap.get(userId);
+    return user ? (user.fullName || user.username) : 'Unknown User';
+  };
+
+  const getUserColor = (userId: number) => {
+    const user = userMap.get(userId);
+    // If the user has an avatarColor defined, use it directly
+    if (user && user.avatarColor) {
+      // The avatarColor is already a valid CSS color like "#ef4444"
+      return user.avatarColor;
+    }
+    
+    // Fallback colors for users without an assigned color
     const colors = [
-      'bg-purple-500',
-      'bg-blue-500',
-      'bg-green-500',
-      'bg-orange-500',
-      'bg-indigo-500',
-      'bg-pink-500',
+      '#a855f7', // purple-500
+      '#3b82f6', // blue-500
+      '#22c55e', // green-500
+      '#f97316', // orange-500
+      '#6366f1', // indigo-500
+      '#ec4899', // pink-500
     ];
     
-    // Generate a consistent color based on the assignee string
-    const hash = assignee.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return colors[hash % colors.length];
+    // Generate a consistent color based on the user ID
+    return colors[userId % colors.length];
   };
 
   const formatDate = (dateString: string) => {
@@ -223,15 +259,20 @@ export default function TaskCard({
             
             <div className="flex justify-between items-center">
               <div className="flex -space-x-2">
-                {assignees && assignees.map((assignee, index) => (
-                  <div 
-                    key={index}
-                    className={`w-7 h-7 rounded-full ${getAssigneeColor(assignee)} flex items-center justify-center text-white text-xs`}
-                    title={assignee}
-                  >
-                    {getAssigneeInitials(assignee)}
-                  </div>
-                ))}
+                {assignees && assignees.length > 0 ? (
+                  assignees.map((userId, index) => (
+                    <div 
+                      key={index}
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs"
+                      style={{ backgroundColor: getUserColor(userId) }}
+                      title={getUserDisplayName(userId)}
+                    >
+                      {getUserInitials(userId)}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-xs text-gray-500">No assignees</div>
+                )}
               </div>
               <div className="flex items-center text-gray-500 text-sm">
                 <MessageSquare className="h-4 w-4 mr-1" />
