@@ -119,26 +119,18 @@ export default function TaskForm({
     // Make a deep copy of the form data to avoid reference issues
     const formData = JSON.parse(JSON.stringify(data));
     
-    // Ensure customData is properly initialized and has no empty fields
-    const customData = formData.customData || {};
+    // Use the CustomDataHandler utility to process the customData
+    const processedCustomData = processCustomData(formData.customData);
     
-    // Create a clean version of customData by removing empty values
-    const cleanCustomData = Object.entries(customData)
-      .filter(([_, value]) => value !== undefined && value !== null && value !== '')
-      .reduce((obj, [key, value]) => {
-        obj[key] = value;
-        return obj;
-      }, {} as Record<string, any>);
-    
-    // Create the final formatted data with the clean customData
+    // Create the final formatted data with the processed customData
     const formattedData = {
       ...formData,
-      customData: cleanCustomData
+      customData: processedCustomData
     };
     
     // Log data at each step for debugging
     console.log("Raw form data:", data);
-    console.log("Cleaned customData:", cleanCustomData);
+    console.log("Processed customData:", processedCustomData);
     console.log("Final data being submitted:", formattedData);
     
     // Submit the form data
@@ -418,22 +410,17 @@ export default function TaskForm({
                       size="sm"
                       className="text-gray-400 hover:text-red-500 text-sm mt-2 flex items-center self-end"
                       onClick={() => {
-                        // Get the custom field data object
-                        const currentData = { ...(form.getValues('customData') || {}) };
+                        // Get the current custom data object
+                        const currentData = form.getValues('customData') || {};
                         
                         // Log the current state
                         console.log('Current customData:', currentData);
                         console.log(`Removing field: ${fieldKey}`);
                         
-                        // Remove the field by creating a new object without that field
-                        const newCustomData = Object.entries(currentData)
-                          .filter(([key]) => key !== fieldKey)
-                          .reduce((obj, [key, value]) => {
-                            obj[key] = value;
-                            return obj;
-                          }, {} as Record<string, any>);
+                        // Use the removeCustomDataField utility to remove the field
+                        const newCustomData = removeCustomDataField(currentData, fieldKey);
                         
-                        // Reset the entire customData field with our filtered object
+                        // Reset the entire customData field with our cleaned object
                         form.setValue('customData', newCustomData, { 
                           shouldDirty: true,
                           shouldTouch: true,
