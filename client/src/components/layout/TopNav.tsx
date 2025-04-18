@@ -90,6 +90,65 @@ export default function TopNav({
               <span className="font-bold text-lg text-primary">TaskFlow</span>
               <span className="text-gray-400 text-xs mt-[-5px]">v1.1</span>
             </div>
+
+            {/* Mobile Board Selector - Only show when there are multiple boards */}
+            {allBoards && allBoards.length > 1 && onBoardSelect && (
+              <div className="md:hidden ml-4">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center px-2 py-1 bg-gray-100 rounded-md text-gray-700 text-sm">
+                      <span className="font-medium truncate max-w-[120px]">{boardName}</span>
+                      <i className="ri-arrow-down-s-line ml-1"></i>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    {allBoards.map((board) => (
+                      <DropdownMenuItem 
+                        key={board.id}
+                        onClick={() => onBoardSelect(board.id)}
+                        className={board.id === activeBoardId ? "bg-gray-100" : ""}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span>{board.name}</span>
+                          {board.id === activeBoardId && (
+                            <i className="ri-check-line text-green-600"></i>
+                          )}
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+
+            {/* Mobile Board Name Editor (if only one board) */}
+            {(!allBoards || allBoards.length <= 1) && boardName && (
+              <div className="md:hidden ml-4">
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editedName}
+                    onChange={handleNameChange}
+                    onBlur={handleSubmit}
+                    onKeyDown={handleKeyDown}
+                    className="text-sm font-medium text-gray-800 border-b border-primary px-1 focus:outline-none"
+                    autoFocus
+                  />
+                ) : (
+                  <div className="flex items-center">
+                    <span className="text-sm font-medium">{boardName}</span>
+                    {onBoardNameChange && (
+                      <button 
+                        className="ml-2 text-gray-500 hover:text-gray-700"
+                        onClick={handleEditClick}
+                      >
+                        <i className="ri-edit-line text-xs"></i>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="hidden md:flex items-center">
               {/* Board Selector Dropdown */}
               {allBoards && allBoards.length > 1 && onBoardSelect && (
