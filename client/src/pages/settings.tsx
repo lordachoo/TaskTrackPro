@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { 
   Card, 
   CardContent, 
@@ -31,7 +31,9 @@ import { Board, CustomField } from "@shared/schema";
 export default function Settings() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAddingField, setIsAddingField] = useState(false);
+  const [isEditingField, setIsEditingField] = useState(false);
   const [selectedBoardId, setSelectedBoardId] = useState<number | null>(null);
+  const [selectedField, setSelectedField] = useState<CustomField | null>(null);
   const [newField, setNewField] = useState<{
     name: string;
     type: string;
@@ -147,6 +149,44 @@ export default function Settings() {
       });
     }
   });
+  
+  // Update custom field mutation
+  const updateFieldMutation = useMutation({
+    mutationFn: async (data: { id: number, fieldData: Partial<typeof newField> }) => {
+      const res = await apiRequest('PUT', `/api/customFields/${data.id}`, data.fieldData);
+      return res.json();
+    },
+    onSuccess: (updatedField: CustomField) => {
+      toast({
+        title: "Custom field updated",
+        description: `The custom field "${updatedField.name}" has been updated.`,
+      });
+      
+      // Update local cache
+      queryClient.setQueryData(
+        ['/api/boards', currentBoard.id, 'customFields'],
+        (oldData: CustomField[] | undefined) => {
+          if (!oldData) return [updatedField];
+          return oldData.map(field => 
+            field.id === updatedField.id ? updatedField : field
+          );
+        }
+      );
+      
+      // Reset form and close it
+      setIsEditingField(false);
+      setSelectedField(null);
+      setNewField({ name: '', type: '', options: null, boardId: currentBoard.id });
+    },
+    onError: (error) => {
+      console.error('Error updating custom field:', error);
+      toast({
+        title: "Failed to update custom field",
+        description: "There was an error updating the custom field. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
 
   const handleAddField = (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,6 +209,48 @@ export default function Settings() {
     
     // Submit the mutation
     addFieldMutation.mutate(fieldData);
+  };
+  
+  const handleEditField = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedField) return;
+    
+    // Ensure we have the current board ID
+    const fieldData = {
+      ...newField,
+      boardId: currentBoard.id
+    };
+    
+    // Validate options for select type
+    if (fieldData.type === 'select' && (!fieldData.options || fieldData.options.trim() === '')) {
+      toast({
+        title: "Validation error",
+        description: "Please provide comma-separated options for the dropdown field.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Submit the mutation
+    updateFieldMutation.mutate({
+      id: selectedField.id,
+      fieldData: fieldData
+    });
+  };
+  
+  const handleStartEditField = (field: CustomField) => {
+    setSelectedField(field);
+    setIsEditingField(true);
+    setIsAddingField(false);
+    
+    // Populate the form with the field's data
+    setNewField({
+      name: field.name,
+      type: field.type,
+      options: field.options,
+      boardId: field.boardId
+    });
   };
 
   const handleDeleteField = (fieldId: number) => {
@@ -380,16 +462,28 @@ export default function Settings() {
                                 )}
                               </TableCell>
                               <TableCell className="text-right">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                                  onClick={() => handleDeleteField(field.id)}
-                                  disabled={deleteCustomFieldMutation.isPending}
-                                >
-                                  <Trash2 className="w-4 h-4 mr-1" />
-                                  Delete
-                                </Button>
+                                <div className="flex justify-end space-x-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                                    onClick={() => handleStartEditField(field)}
+                                    disabled={updateFieldMutation.isPending}
+                                  >
+                                    <Pencil className="w-4 h-4 mr-1" />
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    onClick={() => handleDeleteField(field.id)}
+                                    disabled={deleteCustomFieldMutation.isPending}
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-1" />
+                                    Delete
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
