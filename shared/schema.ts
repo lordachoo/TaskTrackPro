@@ -8,11 +8,22 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  fullName: text("full_name").notNull(),
+  email: text("email").notNull(),
+  role: text("role").default("user").notNull(), // admin, user
+  avatarColor: text("avatar_color").default("#6366f1"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+  fullName: true,
+  email: true,
+  role: true,
+  avatarColor: true,
+  isActive: true,
 });
 
 // Define board schema
@@ -72,7 +83,7 @@ export const tasks = pgTable("tasks", {
   categoryId: integer("category_id").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   isArchived: boolean("is_archived").default(false).notNull(),
-  assignees: text("assignees").array(), // array of user ids or initials
+  assignees: integer("assignees").array(), // array of user ids
   customData: jsonb("custom_data"), // JSON to store custom field data
   comments: integer("comments").default(0),
 });

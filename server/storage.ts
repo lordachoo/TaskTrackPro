@@ -65,10 +65,26 @@ export class MemStorage implements IStorage {
     this.customFields = new Map();
     this.tasks = new Map();
 
-    // Create a default user
+    // Create a default admin user
+    this.createUser({
+      username: "admin",
+      password: "password123",
+      fullName: "System Administrator",
+      email: "admin@example.com",
+      role: "admin",
+      avatarColor: "#4f46e5",
+      isActive: true
+    });
+    
+    // Create a default regular user
     this.createUser({
       username: "demo",
-      password: "password"
+      password: "password",
+      fullName: "Demo User",
+      email: "demo@example.com",
+      role: "user",
+      avatarColor: "#10b981",
+      isActive: true
     });
 
     // Create a default board
@@ -118,7 +134,7 @@ export class MemStorage implements IStorage {
       priority: "medium",
       categoryId: 1,
       isArchived: false,
-      assignees: ["AS", "JD"],
+      assignees: [1, 2], // Admin and Demo users
       customData: {},
       comments: 3
     });
@@ -130,7 +146,7 @@ export class MemStorage implements IStorage {
       priority: "low",
       categoryId: 1,
       isArchived: false,
-      assignees: ["TM"],
+      assignees: [2], // Demo user
       customData: {},
       comments: 1
     });
@@ -149,7 +165,15 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userId++;
-    const user: User = { ...insertUser, id };
+    const now = new Date();
+    const user: User = { 
+      ...insertUser, 
+      id,
+      createdAt: now,
+      role: insertUser.role || "user",
+      avatarColor: insertUser.avatarColor || "#6366f1",
+      isActive: insertUser.isActive !== undefined ? insertUser.isActive : true
+    };
     this.users.set(id, user);
     return user;
   }
