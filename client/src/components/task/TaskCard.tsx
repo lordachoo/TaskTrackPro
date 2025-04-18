@@ -278,10 +278,7 @@ export default function TaskCard({
                   <div className="text-xs text-gray-500">No assignees</div>
                 )}
               </div>
-              <div className="flex items-center text-gray-500 text-sm">
-                <MessageSquare className="h-4 w-4 mr-1" />
-                <span>{comments}</span>
-              </div>
+              {/* Comment count removed as per request */}
             </div>
             
             {/* Render custom fields if any */}
