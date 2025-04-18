@@ -176,8 +176,13 @@ export class DatabaseStorage implements IStorage {
       // Then delete categories
       await db.delete(categories).where(eq(categories.boardId, id));
       
-      // Delete custom fields
-      await db.delete(customFields).where(eq(customFields.boardId, id));
+      // Delete custom fields associated with this board
+      const boardCustomFields = await db.select().from(customFields).where(eq(customFields.boardId, id));
+      console.log(`Deleting ${boardCustomFields.length} custom fields for board ${id}`);
+      
+      if (boardCustomFields.length > 0) {
+        await db.delete(customFields).where(eq(customFields.boardId, id));
+      }
       
       // Finally delete the board
       await db.delete(boards).where(eq(boards.id, id));

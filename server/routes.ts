@@ -110,9 +110,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Get all custom fields for this board to delete later
+      const customFields = await storage.getCustomFields(id);
+      console.log(`Found ${customFields.length} custom fields to delete for board ${id}`);
+      
       // Delete all categories first
       for (const category of categories) {
         await storage.deleteCategory(category.id);
+      }
+      
+      // Delete all custom fields associated with this board
+      for (const field of customFields) {
+        await storage.deleteCustomField(field.id);
       }
       
       // Now delete the board
