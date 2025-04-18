@@ -26,6 +26,20 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
   const [isEditMode, setIsEditMode] = useState(false);
   const { toast } = useToast();
 
+  // Fetch the current board data
+  const {
+    data: currentBoard,
+    isLoading: isBoardLoading,
+    error: boardError
+  } = useQuery({
+    queryKey: ['/api/boards', boardId],
+    queryFn: async () => {
+      const res = await fetch(`/api/boards/${boardId}`);
+      if (!res.ok) throw new Error('Failed to load board');
+      return res.json();
+    }
+  });
+  
   // Fetch categories
   const { 
     data: categories, 
@@ -36,6 +50,19 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
     queryFn: async () => {
       const res = await fetch(`/api/boards/${boardId}/categories`);
       if (!res.ok) throw new Error('Failed to load categories');
+      return res.json();
+    }
+  });
+  
+  // Fetch custom fields
+  const {
+    data: customFields = [],
+    isLoading: isCustomFieldsLoading
+  } = useQuery({
+    queryKey: ['/api/boards', boardId, 'customFields'],
+    queryFn: async () => {
+      const res = await fetch(`/api/boards/${boardId}/customFields`);
+      if (!res.ok) throw new Error('Failed to load custom fields');
       return res.json();
     }
   });
@@ -631,7 +658,7 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
   };
 
   // Loading state
-  if (isCategoriesLoading) {
+  if (isBoardLoading || isCategoriesLoading || isCustomFieldsLoading) {
     return (
       <div className="flex-1 overflow-hidden bg-gray-50 p-4 flex justify-center items-center">
         <div className="text-lg text-gray-600">Loading board...</div>
@@ -640,16 +667,50 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
   }
 
   // Error state
-  if (categoriesError) {
+  if (boardError || categoriesError) {
+    const errorMessage = boardError 
+      ? (boardError as Error).message 
+      : (categoriesError as Error).message;
+      
     return (
       <div className="flex-1 overflow-hidden bg-gray-50 p-4 flex justify-center items-center">
-        <div className="text-lg text-red-600">Error loading board: {(categoriesError as Error).message}</div>
+        <div className="text-lg text-red-600">Error loading board: {errorMessage}</div>
       </div>
     );
   }
 
   return (
     <div className="flex-1 overflow-hidden bg-gray-50 p-4">
+      {/* Board info and custom fields summary */}
+      {currentBoard && customFields && (
+        <div className="mb-4 px-3 py-2 bg-white rounded-md border border-gray-200 shadow-sm">
+          <div className="flex flex-wrap gap-2 items-center">
+            <h2 className="text-sm font-medium text-gray-700">
+              {currentBoard.name}
+            </h2>
+            <div className="h-4 w-px bg-gray-300 mx-1"></div>
+            <div className="text-xs text-gray-500">
+              {customFields.length === 0 ? (
+                <span>No custom fields available for this board</span>
+              ) : (
+                <span>
+                  {customFields.length} custom field{customFields.length !== 1 ? 's' : ''} available: {' '}
+                  {customFields.map((field: any, index: number) => (
+                    <span key={field.id} className="font-medium">
+                      {field.name}{index < customFields.length - 1 ? ', ' : ''}
+                    </span>
+                  ))}
+                </span>
+              )}
+              <span className="ml-1 text-xs text-blue-500 hover:underline cursor-pointer" 
+                onClick={() => window.location.href = '/settings'}>
+                (Manage Fields)
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="board-container h-full flex space-x-4 pb-4">
           {categories && categories.map((category: Category) => (
