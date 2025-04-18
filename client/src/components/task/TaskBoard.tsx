@@ -366,8 +366,23 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
   
   // Create category mutation
   const createCategoryMutation = useMutation({
-    mutationFn: async (newCategory: Partial<Category>) => {
-      const res = await apiRequest('POST', '/api/categories', newCategory);
+    mutationFn: async (newCategory: Partial<Category> & { boardId: number }) => {
+      // Get existing categories to determine the next order value
+      const categoriesResponse = await fetch(`/api/boards/${boardId}/categories`);
+      const existingCategories = await categoriesResponse.json();
+      
+      // Calculate the max order
+      const maxOrder = existingCategories.length > 0 
+        ? Math.max(...existingCategories.map((c: Category) => c.order ?? 0))
+        : -1;
+      
+      // Add the order field to the category data
+      const categoryWithOrder = {
+        ...newCategory,
+        order: maxOrder + 1
+      };
+      
+      const res = await apiRequest('POST', '/api/categories', categoryWithOrder);
       return res.json();
     },
     onSuccess: () => {
