@@ -9,6 +9,7 @@ import {
 import { IStorage } from "./storage";
 import { db } from "./db";
 import { and, eq, asc } from "drizzle-orm";
+import bcrypt from "bcrypt";
 
 export class DatabaseStorage implements IStorage {
   // User methods
@@ -17,6 +18,16 @@ export class DatabaseStorage implements IStorage {
     const allUsers = await db.select().from(users);
     console.log("Retrieved users from database:", allUsers);
     return allUsers;
+  }
+  
+  // Authentication helper methods
+  async verifyPassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
+    try {
+      return await bcrypt.compare(plainPassword, hashedPassword);
+    } catch (error) {
+      console.error("Error verifying password:", error);
+      return false;
+    }
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -31,12 +42,19 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     // Log the input data for debugging
-    console.log("Creating user in database with data:", insertUser);
+    console.log("Creating user in database with data:", {
+      ...insertUser,
+      password: "***MASKED***" // Don't log plain passwords
+    });
+    
+    // Hash the password with bcrypt
+    const hashedPassword = await bcrypt.hash(insertUser.password, 10);
+    console.log("Password hashed for security");
     
     // Create the user with all fields in the database - do not modify email
     const [user] = await db.insert(users).values({
       username: insertUser.username,
-      password: insertUser.password,
+      password: hashedPassword, // Store the hashed password
       fullName: insertUser.fullName || null,
       // Preserve the exact email from the input
       email: insertUser.email,
@@ -46,13 +64,19 @@ export class DatabaseStorage implements IStorage {
       isActive: insertUser.isActive !== undefined ? insertUser.isActive : true
     }).returning();
     
-    console.log("User created in database, returned data:", user);
+    console.log("User created in database, returned data:", {
+      ...user,
+      password: "***MASKED***" // Don't log passwords
+    });
     return user;
   }
   
   async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
-    // Log the input data for debugging
-    console.log(`Updating user ${id} in database with data:`, userData);
+    // Log the input data for debugging (mask password)
+    console.log(`Updating user ${id} in database with data:`, {
+      ...userData,
+      password: userData.password ? "***MASKED***" : undefined
+    });
     
     // Make sure we're preserving email and role values exactly as provided
     const cleanedData = { ...userData };
@@ -63,12 +87,22 @@ export class DatabaseStorage implements IStorage {
       cleanedData.role = userData.role; // Preserve role exactly as provided
     }
     
+    // If password is being updated, hash it
+    if (userData.password) {
+      const hashedPassword = await bcrypt.hash(userData.password, 10);
+      cleanedData.password = hashedPassword;
+      console.log(`User ${id} password hashed for security`);
+    }
+    
     const [updatedUser] = await db.update(users)
       .set(cleanedData)
       .where(eq(users.id, id))
       .returning();
     
-    console.log(`User ${id} updated in database, returned data:`, updatedUser);
+    console.log(`User ${id} updated in database, returned data:`, {
+      ...updatedUser,
+      password: "***MASKED***" // Don't log passwords
+    });
     return updatedUser;
   }
   

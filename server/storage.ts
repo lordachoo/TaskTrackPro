@@ -16,6 +16,9 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: number): Promise<boolean>;
+  
+  // Authentication method
+  verifyPassword(plainPassword: string, hashedPassword: string): Promise<boolean>;
 
   // Board methods
   getBoards(userId: number, showArchived?: boolean): Promise<Board[]>;
@@ -160,6 +163,11 @@ export class MemStorage implements IStorage {
   // User methods
   async getAllUsers(): Promise<User[]> {
     return Array.from(this.users.values());
+  }
+  
+  // Simple string comparison for in-memory storage (no real hashing)
+  async verifyPassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
+    return plainPassword === hashedPassword;
   }
   
   async getUser(id: number): Promise<User | undefined> {
