@@ -10,25 +10,87 @@ import { IStorage } from "./storage";
 import { db } from "./db";
 import { and, eq, asc } from "drizzle-orm";
 
+// In-memory cache for user details that are not in the database
+class UserExtendedDetailsCache {
+  private cache: Map<number, {
+    fullName?: string;
+    email?: string;
+    role?: string;
+    avatarColor?: string;
+    isActive?: boolean;
+    createdAt?: Date;
+  }>;
+
+  constructor() {
+    this.cache = new Map();
+    
+    // Set some defaults for the admin and user accounts
+    this.cache.set(1, {
+      fullName: 'Administrator',
+      email: 'admin@example.com',
+      role: 'admin',
+      avatarColor: '#4f46e5',
+      isActive: true,
+      createdAt: new Date()
+    });
+    
+    this.cache.set(2, {
+      fullName: 'Regular User',
+      email: 'user@example.com',
+      role: 'user',
+      avatarColor: '#10b981',
+      isActive: true,
+      createdAt: new Date()
+    });
+  }
+
+  get(id: number) {
+    return this.cache.get(id) || {};
+  }
+
+  set(id: number, details: {
+    fullName?: string;
+    email?: string;
+    role?: string;
+    avatarColor?: string;
+    isActive?: boolean;
+    createdAt?: Date;
+  }) {
+    this.cache.set(id, { ...this.get(id), ...details });
+  }
+
+  delete(id: number) {
+    this.cache.delete(id);
+  }
+}
+
+const userCache = new UserExtendedDetailsCache();
+
 export class DatabaseStorage implements IStorage {
   // User methods
   async getUser(id: number): Promise<User | undefined> {
     const [baseUser] = await db.select().from(users).where(eq(users.id, id));
     if (!baseUser) return undefined;
     
-    // Add default values for extended properties
-    return this.addUserDefaults(baseUser);
+    // Add values from cache or defaults for extended properties
+    return this.enhanceUserWithCachedDetails(baseUser);
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [baseUser] = await db.select().from(users).where(eq(users.username, username));
     if (!baseUser) return undefined;
     
-    // Add default values for extended properties
-    return this.addUserDefaults(baseUser);
+    // Add values from cache or defaults for extended properties
+    return this.enhanceUserWithCachedDetails(baseUser);
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createUser(insertUser: InsertUser & {
+    fullName?: string;
+    email?: string;
+    role?: string;
+    avatarColor?: string;
+    isActive?: boolean;
+  }): Promise<User> {
     // Keep only the fields that exist in the database
     const dbUser = {
       username: insertUser.username,
@@ -37,11 +99,27 @@ export class DatabaseStorage implements IStorage {
     
     const [baseUser] = await db.insert(users).values(dbUser).returning();
     
-    // Return user with default values for extended properties
-    return this.addUserDefaults(baseUser);
+    // Store the extended details in the cache
+    userCache.set(baseUser.id, {
+      fullName: insertUser.fullName,
+      email: insertUser.email,
+      role: insertUser.role,
+      avatarColor: insertUser.avatarColor,
+      isActive: insertUser.isActive,
+      createdAt: new Date()
+    });
+    
+    // Return user with cached extended properties
+    return this.enhanceUserWithCachedDetails(baseUser);
   }
   
-  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
+  async updateUser(id: number, userData: Partial<InsertUser> & {
+    fullName?: string;
+    email?: string;
+    role?: string;
+    avatarColor?: string;
+    isActive?: boolean;
+  }): Promise<User | undefined> {
     // Keep only the fields that exist in the database
     const dbUserData: Partial<InsertUser> = {};
     if (userData.username) dbUserData.username = userData.username;
@@ -54,25 +132,51 @@ export class DatabaseStorage implements IStorage {
     
     if (!baseUser) return undefined;
     
-    // Return user with default values for extended properties
-    return this.addUserDefaults(baseUser);
+    // Update the extended details in the cache
+    const detailsToCache = {
+      fullName: userData.fullName,
+      email: userData.email,
+      role: userData.role,
+      avatarColor: userData.avatarColor,
+      isActive: userData.isActive
+    };
+    
+    // Only add fields that are actually provided (not undefined)
+    const filteredDetails: Record<string, any> = {};
+    Object.entries(detailsToCache).forEach(([key, value]) => {
+      if (value !== undefined) {
+        filteredDetails[key] = value;
+      }
+    });
+    
+    userCache.set(baseUser.id, filteredDetails);
+    
+    // Return user with cached extended properties
+    return this.enhanceUserWithCachedDetails(baseUser);
   }
   
   async deleteUser(id: number): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id)).returning();
-    return result.length > 0;
+    if (result.length > 0) {
+      // Also delete from cache
+      userCache.delete(id);
+      return true;
+    }
+    return false;
   }
   
-  // Helper method to add default values for properties that are not in the database
-  private addUserDefaults(baseUser: typeof users.$inferSelect): User {
+  // Helper method to enhance user with cached or default values
+  private enhanceUserWithCachedDetails(baseUser: typeof users.$inferSelect): User {
+    const cachedDetails = userCache.get(baseUser.id);
+    
     return {
       ...baseUser,
-      fullName: baseUser.username,  // Default to username 
-      email: `${baseUser.username}@example.com`, // Default email
-      role: baseUser.username === 'admin' ? 'admin' : 'user', // Set role based on username
-      avatarColor: '#6366f1',  // Default color
-      isActive: true,  // Default to active
-      createdAt: new Date()  // Default date
+      fullName: cachedDetails.fullName || baseUser.username,  // Fallback to username 
+      email: cachedDetails.email || `${baseUser.username}@example.com`, // Fallback email
+      role: cachedDetails.role || (baseUser.username === 'admin' ? 'admin' : 'user'), // Fallback role
+      avatarColor: cachedDetails.avatarColor || '#6366f1',  // Fallback color
+      isActive: cachedDetails.isActive !== undefined ? cachedDetails.isActive : true, // Fallback active state
+      createdAt: cachedDetails.createdAt || new Date() // Fallback date
     };
   }
 

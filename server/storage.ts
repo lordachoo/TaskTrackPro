@@ -68,7 +68,7 @@ export class MemStorage implements IStorage {
     this.tasks = new Map();
 
     // Create a default admin user
-    this.createUser({
+    const adminUser: InsertUser = {
       username: "admin",
       password: "password123",
       fullName: "System Administrator",
@@ -76,10 +76,11 @@ export class MemStorage implements IStorage {
       role: "admin",
       avatarColor: "#4f46e5",
       isActive: true
-    });
+    };
+    this.createUser(adminUser);
     
     // Create a default regular user
-    this.createUser({
+    const demoUser: InsertUser = {
       username: "demo",
       password: "password",
       fullName: "Demo User",
@@ -87,7 +88,8 @@ export class MemStorage implements IStorage {
       role: "user",
       avatarColor: "#10b981",
       isActive: true
-    });
+    };
+    this.createUser(demoUser);
 
     // Create a default board
     const board = {

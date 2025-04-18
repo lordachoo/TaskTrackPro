@@ -16,6 +16,13 @@ export const users = pgTable("users", {
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+}).extend({
+  // Extended fields for non-database properties
+  fullName: z.string().optional(),
+  email: z.string().email().optional(),
+  role: z.enum(['admin', 'user']).optional(),
+  avatarColor: z.string().optional(),
+  isActive: z.boolean().optional(),
 });
 
 // Define board schema
