@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import Sidebar from "@/components/layout/Sidebar";
 import TopNav from "@/components/layout/TopNav";
+import UserList from "@/components/user/UserList";
 import { Board, CustomField } from "@shared/schema";
 
 export default function Settings() {
