@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
+import { FilterOptions, SortOption } from "@/components/layout/ControlBar";
+import { useUsers } from "@/hooks/use-users";
 
 interface TaskBoardProps {
   boardId: number;
@@ -40,6 +42,25 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
 
   // Create state to hold tasks for each category
   const [categoryTasks, setCategoryTasks] = useState<Record<number, Task[]>>({});
+  
+  // State for filtered tasks
+  const [filteredCategoryTasks, setFilteredCategoryTasks] = useState<Record<number, Task[]>>({});
+  
+  // State for filter and sort options
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    priorities: [],
+    categories: [],
+    assignees: [],
+    dueDateRange: 'all',
+    hideCompleted: false
+  });
+  
+  const [sortOption, setSortOption] = useState<SortOption>({
+    field: 'dueDate',
+    direction: 'asc'
+  });
+  
+  const { users } = useUsers();
 
   // Fetch tasks for each category
   useEffect(() => {

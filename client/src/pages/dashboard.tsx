@@ -449,17 +449,21 @@ export default function Dashboard() {
           onSearch={handleSearch}
           onFilter={(options) => {
             console.log('Filter options:', options);
-            toast({
-              title: "Filter functionality",
-              description: "This would apply filters in a full implementation.",
-            });
+            // Store the filter options in local storage
+            localStorage.setItem('taskFilterOptions', JSON.stringify(options));
+            // Apply filter by dispatching a custom event that TaskBoard will listen for
+            window.dispatchEvent(new CustomEvent('applyTaskFilters', { 
+              detail: options 
+            }));
           }}
           onSort={(option) => {
             console.log('Sort option:', option);
-            toast({
-              title: "Sort functionality",
-              description: "This would apply sorting in a full implementation.",
-            });
+            // Store the sort options in local storage
+            localStorage.setItem('taskSortOption', JSON.stringify(option));
+            // Apply sort by dispatching a custom event that TaskBoard will listen for
+            window.dispatchEvent(new CustomEvent('applyTaskSort', { 
+              detail: option 
+            }));
           }}
           onCreateBoard={handleCreateBoard}
           categories={categoriesData || []}

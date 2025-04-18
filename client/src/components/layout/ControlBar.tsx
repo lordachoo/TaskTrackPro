@@ -17,6 +17,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { useUsers } from "@/hooks/use-users";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export interface FilterOptions {
   priorities: string[];
@@ -99,7 +101,7 @@ export default function ControlBar({
   };
 
   const priorityOptions = ['low', 'medium', 'high'];
-  const assigneeOptions = ['JS', 'AS', 'TM', 'RK', 'MD', 'LR']; // Sample assignees
+  const { users = [] } = useUsers();
   const dueDateOptions = [
     { value: 'all', label: 'All dates' },
     { value: 'today', label: 'Due today' },
@@ -219,19 +221,27 @@ export default function ControlBar({
               
               <div>
                 <h5 className="text-sm font-medium mb-2">Assignee</h5>
-                <div className="space-y-1">
-                  {assigneeOptions.map(assignee => (
-                    <div key={assignee} className="flex items-center space-x-2">
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {users.map(user => (
+                    <div key={user.id} className="flex items-center space-x-2">
                       <Checkbox 
-                        id={`assignee-${assignee}`} 
-                        checked={filterOptions.assignees.includes(assignee)}
-                        onCheckedChange={() => handleFilterChange('assignees', assignee)}
+                        id={`assignee-${user.id}`} 
+                        checked={filterOptions.assignees.includes(user.id.toString())}
+                        onCheckedChange={() => handleFilterChange('assignees', user.id.toString())}
                       />
                       <label 
-                        htmlFor={`assignee-${assignee}`}
-                        className="text-sm"
+                        htmlFor={`assignee-${user.id}`}
+                        className="text-sm flex items-center"
                       >
-                        {assignee}
+                        <Avatar className="h-5 w-5 mr-1">
+                          <AvatarFallback 
+                            style={{ backgroundColor: user.avatarColor || '#6366f1' }}
+                            className="text-white text-xs"
+                          >
+                            {user.fullName ? user.fullName.charAt(0) : user.username.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        {user.fullName || user.username}
                       </label>
                     </div>
                   ))}
