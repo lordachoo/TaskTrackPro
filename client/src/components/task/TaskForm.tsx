@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { queryClient } from "@/lib/queryClient";
 import CustomFieldForm from "./CustomFieldForm";
 
 interface TaskFormProps {
@@ -48,7 +49,10 @@ export default function TaskForm({
   const [showCustomFieldForm, setShowCustomFieldForm] = useState(false);
   
   // Fetch custom fields
-  const { data: customFields = [] } = useQuery({
+  const { 
+    data: customFields = [], 
+    refetch: refetchCustomFields 
+  } = useQuery({
     queryKey: ['/api/boards', boardId, 'customFields'],
     queryFn: async () => {
       const res = await fetch(`/api/boards/${boardId}/customFields`);
@@ -419,8 +423,8 @@ export default function TaskForm({
           onClose={() => setShowCustomFieldForm(false)}
           onSuccess={() => {
             setShowCustomFieldForm(false);
-            // Refetch custom fields
-            queryClient.invalidateQueries({ queryKey: ['/api/boards', boardId, 'customFields'] });
+            // Explicitly refetch custom fields
+            refetchCustomFields();
           }}
         />
       )}

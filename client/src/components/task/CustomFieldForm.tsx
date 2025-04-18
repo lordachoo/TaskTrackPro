@@ -60,10 +60,32 @@ export default function CustomFieldForm({
   // Create custom field mutation
   const createCustomFieldMutation = useMutation({
     mutationFn: async (newField: CustomFieldFormValues) => {
-      const res = await apiRequest('POST', '/api/customFields', newField);
-      return res.json();
+      try {
+        console.log('Submitting new custom field:', newField);
+        const res = await apiRequest('POST', '/api/customFields', newField);
+        
+        if (!res.ok) {
+          let errorMessage = 'Failed to create custom field';
+          try {
+            const errorData = await res.json();
+            errorMessage = errorData?.message || errorMessage;
+            console.error('Server returned error:', errorData);
+          } catch (parseError) {
+            console.error('Failed to parse error response:', parseError);
+          }
+          throw new Error(errorMessage);
+        }
+        
+        const data = await res.json();
+        console.log('Successfully created custom field:', data);
+        return data;
+      } catch (error: any) {
+        console.error('Error creating custom field:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Custom field created successfully:', data);
       toast({
         title: "Custom field created",
         description: "The custom field has been added to the board.",
@@ -71,11 +93,12 @@ export default function CustomFieldForm({
       handleClose();
       onSuccess();
     },
-    onError: (error) => {
-      console.error('Error creating custom field:', error);
+    onError: (error: any) => {
+      const errorMessage = error?.message || "Unknown error occurred";
+      console.error('Error creating custom field:', errorMessage);
       toast({
         title: "Failed to create custom field",
-        description: "There was an error creating the custom field. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
