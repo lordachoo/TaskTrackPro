@@ -162,3 +162,32 @@ export const insertSystemSettingSchema = createInsertSchema(systemSettings).pick
 
 export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
 export type SystemSetting = typeof systemSettings.$inferSelect;
+
+// Define event logs schema
+export const eventLogs = pgTable("event_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  eventType: text("event_type").notNull(), // e.g., "task.created", "board.archived"
+  entityType: text("entity_type").notNull(), // e.g., "task", "board", "category"
+  entityId: integer("entity_id").notNull(),
+  details: jsonb("details"), // JSON containing relevant details about the action
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertEventLogSchema = createInsertSchema(eventLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertEventLog = z.infer<typeof insertEventLogSchema>;
+export type EventLog = typeof eventLogs.$inferSelect;
+
+// Add relations to connect events to users
+export const eventLogsRelations = relations(eventLogs, ({ one }) => ({
+  user: one(users, {
+    fields: [eventLogs.userId],
+    references: [users.id],
+  }),
+}));

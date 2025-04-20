@@ -5,7 +5,8 @@ import {
   CustomField, InsertCustomField,
   Task, InsertTask,
   SystemSetting,
-  users, boards, categories, customFields, tasks, systemSettings
+  EventLog, InsertEventLog,
+  users, boards, categories, customFields, tasks, systemSettings, eventLogs
 } from "@shared/schema";
 import { IStorage } from "./storage";
 import { db } from "./db";

@@ -5,7 +5,8 @@ import {
   CustomField, InsertCustomField,
   Task, InsertTask,
   SystemSetting, InsertSystemSetting,
-  users, boards, categories, customFields, tasks, systemSettings
+  EventLog, InsertEventLog,
+  users, boards, categories, customFields, tasks, systemSettings, eventLogs
 } from "@shared/schema";
 
 // Interface for storage operations
@@ -53,6 +54,12 @@ export interface IStorage {
   updateTask(id: number, task: Partial<InsertTask>): Promise<Task | undefined>;
   deleteTask(id: number): Promise<boolean>;
   getArchivedTasks(boardId: number): Promise<Task[]>;
+  
+  // Event Logging methods
+  createEventLog(log: InsertEventLog): Promise<EventLog>;
+  getEventLogs(options?: { limit?: number, offset?: number, userId?: number, entityType?: string }): Promise<EventLog[]>;
+  getEventLog(id: number): Promise<EventLog | undefined>;
+  getEventLogCount(filters?: { userId?: number, entityType?: string }): Promise<number>;
 }
 
 // In-memory storage implementation
@@ -407,6 +414,72 @@ export class MemStorage implements IStorage {
       this.settings.set(key, newSetting);
       return newSetting;
     }
+  }
+  
+  // Event Logging methods
+  private eventLogs: Map<number, EventLog> = new Map();
+  private eventLogId = 1;
+  
+  async createEventLog(log: InsertEventLog): Promise<EventLog> {
+    const id = this.eventLogId++;
+    const now = new Date();
+    
+    const eventLog: EventLog = {
+      ...log,
+      id,
+      createdAt: now
+    };
+    
+    this.eventLogs.set(id, eventLog);
+    return eventLog;
+  }
+  
+  async getEventLogs(options?: { limit?: number, offset?: number, userId?: number, entityType?: string }): Promise<EventLog[]> {
+    let logs = Array.from(this.eventLogs.values());
+    
+    // Apply filters
+    if (options?.userId) {
+      logs = logs.filter(log => log.userId === options.userId);
+    }
+    
+    if (options?.entityType) {
+      logs = logs.filter(log => log.entityType === options.entityType);
+    }
+    
+    // Sort by createdAt descending (newest first)
+    logs = logs.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    
+    // Apply pagination
+    const offset = options?.offset || 0;
+    const limit = options?.limit || logs.length;
+    
+    return logs.slice(offset, offset + limit);
+  }
+  
+  async getEventLog(id: number): Promise<EventLog | undefined> {
+    return this.eventLogs.get(id);
+  }
+  
+  async getEventLogCount(filters?: { userId?: number, entityType?: string }): Promise<number> {
+    let count = this.eventLogs.size;
+    
+    if (filters) {
+      let logs = Array.from(this.eventLogs.values());
+      
+      if (filters.userId) {
+        logs = logs.filter(log => log.userId === filters.userId);
+      }
+      
+      if (filters.entityType) {
+        logs = logs.filter(log => log.entityType === filters.entityType);
+      }
+      
+      count = logs.length;
+    }
+    
+    return count;
   }
 }
 
