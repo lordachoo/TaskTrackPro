@@ -684,6 +684,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Event Logs endpoints - Admin only
+  apiRouter.get("/eventLogs/stats/counts", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      // Get counts for different entity types
+      const taskCount = await storage.getEventLogCount({ entityType: 'task' });
+      const boardCount = await storage.getEventLogCount({ entityType: 'board' });
+      const categoryCount = await storage.getEventLogCount({ entityType: 'category' });
+      const userCount = await storage.getEventLogCount({ entityType: 'user' });
+      const customFieldCount = await storage.getEventLogCount({ entityType: 'customField' });
+      
+      res.json({
+        task: taskCount,
+        board: boardCount,
+        category: categoryCount,
+        user: userCount,
+        customField: customFieldCount,
+        total: taskCount + boardCount + categoryCount + userCount + customFieldCount
+      });
+    } catch (error) {
+      console.error("Error fetching event log stats:", error);
+      res.status(500).send("Error fetching event log statistics");
+    }
+  });
+  
+  apiRouter.get("/eventLogs", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const offset = req.query.page ? parseInt(req.query.page as string) * limit : 0;
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+      const entityType = req.query.entityType as string | undefined;
+      
+      const logs = await storage.getEventLogs({ limit, offset, userId, entityType });
+      const total = await storage.getEventLogCount({ userId, entityType });
+      
+      res.json({
+        logs,
+        pagination: {
+          total,
+          page: offset / limit,
+          pageSize: limit,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching event logs:", error);
+      res.status(500).send("Error fetching event logs");
+    }
+  });
+  
+  apiRouter.get("/eventLogs/:id", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const log = await storage.getEventLog(id);
+      
+      if (!log) {
+        return res.status(404).send("Event log not found");
+      }
+      
+      res.json(log);
+    } catch (error) {
+      console.error("Error fetching event log:", error);
+      res.status(500).send("Error fetching event log");
+    }
+  });
+
   app.use("/api", apiRouter);
 
   const httpServer = createServer(app);
