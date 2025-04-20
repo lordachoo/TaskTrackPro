@@ -12,6 +12,16 @@ import {
   users
 } from "@shared/schema";
 import { setupAuth, isAuthenticated, isAdmin } from "./auth";
+import { 
+  logBoardEvent, 
+  logCategoryEvent, 
+  logTaskEvent, 
+  logCustomFieldEvent,
+  logUserEvent,
+  logSystemEvent,
+  EventTypes,
+  EntityTypes
+} from "./eventLogger";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
@@ -56,6 +66,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedData = insertBoardSchema.parse(req.body);
       const board = await storage.createBoard(validatedData);
+      
+      // Log the board creation event
+      await logBoardEvent(req, EventTypes.BOARD_CREATED, board.id, {
+        name: board.name,
+        userId: board.userId
+      });
+      
       res.status(201).json(board);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -71,11 +88,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const validatedData = insertBoardSchema.partial().parse(req.body);
       
+      // Get the original board for logging purposes
+      const originalBoard = await storage.getBoard(id);
+      if (!originalBoard) {
+        return res.status(404).json({ message: "Board not found" });
+      }
+      
       const updatedBoard = await storage.updateBoard(id, validatedData);
       
       if (!updatedBoard) {
         return res.status(404).json({ message: "Board not found" });
       }
+      
+      // Log the board update event
+      await logBoardEvent(req, EventTypes.BOARD_UPDATED, updatedBoard.id, {
+        before: {
+          name: originalBoard.name,
+          description: originalBoard.description
+        },
+        after: {
+          name: updatedBoard.name,
+          description: updatedBoard.description
+        },
+        changedFields: Object.keys(validatedData)
+      });
       
       res.json(updatedBoard);
     } catch (error) {
@@ -295,6 +331,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertTaskSchema.parse(req.body);
       const task = await storage.createTask(validatedData);
+      
+      // Log the task creation event
+      await logTaskEvent(req, EventTypes.TASK_CREATED, task.id, {
+        title: task.title,
+        categoryId: task.categoryId,
+        priority: task.priority,
+        dueDate: task.dueDate
+      });
+      
       res.status(201).json(task);
     } catch (error) {
       if (error instanceof z.ZodError) {
