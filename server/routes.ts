@@ -383,6 +383,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('Final data being sent to storage:', validatedData);
       
+      // Log the task update event with before and after details for auditing
+      try {
+        await logTaskEvent(
+          req,
+          EventTypes.TASK_UPDATED,
+          id,
+          {
+            before: {
+              title: existingTask.title,
+              description: existingTask.description,
+              categoryId: existingTask.categoryId,
+              priority: existingTask.priority,
+              dueDate: existingTask.dueDate,
+              assignees: existingTask.assignees
+            },
+            after: {
+              title: validatedData.title || existingTask.title,
+              description: validatedData.description !== undefined ? validatedData.description : existingTask.description,
+              categoryId: validatedData.categoryId || existingTask.categoryId,
+              priority: validatedData.priority || existingTask.priority,
+              dueDate: validatedData.dueDate || existingTask.dueDate,
+              assignees: validatedData.assignees || existingTask.assignees
+            },
+            changedFields: Object.keys(validatedData)
+          }
+        );
+        console.log(`Logged task update event for task ${id}`);
+      } catch (logError) {
+        console.error("Error logging task update:", logError);
+        // Continue with update even if logging fails
+      }
+
       // Update the task with the validated data
       const updatedTask = await storage.updateTask(id, validatedData);
       
@@ -462,6 +494,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Task not found" });
       }
       
+      // Log the task archive event
+      try {
+        await logTaskEvent(
+          req,
+          EventTypes.TASK_ARCHIVED,
+          id,
+          {
+            task: {
+              title: task.title,
+              description: task.description,
+              categoryId: task.categoryId,
+              priority: task.priority,
+              dueDate: task.dueDate,
+              assignees: task.assignees
+            }
+          }
+        );
+        console.log(`Logged task archive event for task ${id}`);
+      } catch (logError) {
+        console.error("Error logging task archive:", logError);
+        // Continue with archive even if logging fails
+      }
+      
       const updatedTask = await storage.updateTask(id, { isArchived: true });
       res.json(updatedTask);
     } catch (error) {
@@ -492,6 +547,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Task not found" });
       }
       
+      // Log the task restore event
+      try {
+        await logTaskEvent(
+          req,
+          EventTypes.TASK_RESTORED,
+          id,
+          {
+            task: {
+              title: task.title,
+              description: task.description,
+              categoryId: task.categoryId,
+              priority: task.priority,
+              dueDate: task.dueDate,
+              assignees: task.assignees
+            }
+          }
+        );
+        console.log(`Logged task restore event for task ${id}`);
+      } catch (logError) {
+        console.error("Error logging task restore:", logError);
+        // Continue with restore even if logging fails
+      }
+      
       const updatedTask = await storage.updateTask(id, { isArchived: false });
       res.json(updatedTask);
     } catch (error) {
@@ -508,6 +586,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!board) {
         return res.status(404).json({ message: "Board not found" });
+      }
+      
+      // Log the board archive event
+      try {
+        await logBoardEvent(
+          req,
+          EventTypes.BOARD_ARCHIVED,
+          id,
+          {
+            board: {
+              name: board.name,
+              userId: board.userId
+            }
+          }
+        );
+        console.log(`Logged board archive event for board ${id}`);
+      } catch (logError) {
+        console.error("Error logging board archive:", logError);
+        // Continue with archive even if logging fails
       }
       
       // Cast to any to bypass type checking since we know isArchived is valid
