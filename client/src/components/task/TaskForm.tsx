@@ -167,13 +167,8 @@ export default function TaskForm({
       hasField: customData && fieldName in customData 
     });
     
-    // For empty/null customData, show all fields
-    if (!customData || Object.keys(customData).length === 0) {
-      return true;
-    }
-    
-    // Only show fields that exist in customData (have a property)
-    return fieldName in customData;
+    // Always show all custom fields, regardless of whether they exist in customData
+    return true;
   };
 
   return (
