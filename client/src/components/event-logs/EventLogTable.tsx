@@ -21,6 +21,45 @@ import {
 } from "@/components/ui/hover-card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+// Event type friendly labels map
+const eventTypeLabels: Record<string, string> = {
+  // Task events
+  "task.created": "Task Created",
+  "task.updated": "Task Updated",
+  "task.deleted": "Task Deleted",
+  "task.archived": "Task Archived",
+  "task.restored": "Task Restored",
+  "task.moved": "Task Moved",
+  
+  // Board events
+  "board.created": "Board Created",
+  "board.updated": "Board Updated",
+  "board.deleted": "Board Deleted",
+  "board.archived": "Board Archived",
+  "board.restored": "Board Restored",
+  
+  // Category events
+  "category.created": "Category Created",
+  "category.updated": "Category Updated",
+  "category.deleted": "Category Deleted",
+  "category.reordered": "Categories Reordered",
+  
+  // Custom Field events
+  "customField.created": "Custom Field Created",
+  "customField.updated": "Custom Field Updated",
+  "customField.deleted": "Custom Field Deleted",
+  
+  // User events
+  "user.created": "User Created",
+  "user.updated": "User Updated",
+  "user.deleted": "User Deleted",
+  "user.login": "User Login",
+  "user.logout": "User Logout",
+  
+  // System events
+  "system.settingUpdated": "System Setting Updated"
+};
+
 interface EventLogTableProps {
   logs: EventLogWithUser[];
   pagination: {
@@ -196,13 +235,13 @@ export function EventLogTable({
                   <Badge
                     className={`${getEntityTypeColor(log.entityType)} hover:${getEntityTypeColor(log.entityType)}`}
                   >
-                    {log.entityType}
+                    {log.entityType === "customField" ? "Custom Field" : log.entityType.charAt(0).toUpperCase() + log.entityType.slice(1)}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">
-                      {getEventTypeLabel(log.eventType)}
+                      {eventTypeLabels[log.eventType] || getEventTypeLabel(log.eventType)}
                     </Badge>
                     <span className="text-sm">ID: {log.entityId}</span>
                   </div>
