@@ -2,14 +2,13 @@ import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import TopNav from "@/components/layout/TopNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useEventLogs, useEventLogCounts } from "@/hooks/use-event-logs";
+import { useEventLogs, useEventLogCounts, EventLogWithUser } from "@/hooks/use-event-logs";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Filter, RefreshCcw } from "lucide-react";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUsers } from "@/hooks/use-users";
-import { EventLog } from "@shared/schema";
 
 // Event log types for more readable UI
 const eventTypeLabels: Record<string, string> = {
@@ -48,7 +47,7 @@ export default function EventLogs() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
-  const [selectedLog, setSelectedLog] = useState<EventLog | null>(null);
+  const [selectedLog, setSelectedLog] = useState<EventLogWithUser | null>(null);
   const [activeTab, setActiveTab] = useState("all");
   const [filters, setFilters] = useState<{
     userId: number | null;
@@ -83,7 +82,7 @@ export default function EventLogs() {
   const totalLogs = logsData?.pagination?.total || 0;
   const totalPages = logsData?.pagination?.totalPages || 1;
   
-  const handleSelectLog = (log: EventLog) => {
+  const handleSelectLog = (log: EventLogWithUser) => {
     setSelectedLog(log);
   };
   
