@@ -431,7 +431,15 @@ export class DatabaseStorage implements IStorage {
       // Create a SQL query with LEFT JOIN to get user data directly
       let query = `
         SELECT 
-          e.*,
+          e.id, 
+          e."eventType", 
+          e."entityType", 
+          e."entityId", 
+          e."userId", 
+          e.details, 
+          e."ipAddress", 
+          e."userAgent", 
+          e."createdAt",
           CASE WHEN u.id IS NOT NULL THEN 
             json_build_object(
               'id', u.id,
@@ -507,7 +515,15 @@ export class DatabaseStorage implements IStorage {
       // Use SQL query with JOIN to get both log and user data
       const query = `
         SELECT 
-          e.*,
+          e.id, 
+          e."eventType", 
+          e."entityType", 
+          e."entityId", 
+          e."userId", 
+          e.details, 
+          e."ipAddress", 
+          e."userAgent", 
+          e."createdAt",
           CASE WHEN u.id IS NOT NULL THEN 
             json_build_object(
               'id', u.id,
