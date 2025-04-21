@@ -626,6 +626,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Board not found" });
       }
       
+      // Log the board restore event
+      try {
+        await logBoardEvent(
+          req,
+          EventTypes.BOARD_RESTORED,
+          id,
+          {
+            board: {
+              name: board.name,
+              userId: board.userId
+            }
+          }
+        );
+        console.log(`Logged board restore event for board ${id}`);
+      } catch (logError) {
+        console.error("Error logging board restore:", logError);
+        // Continue with restore even if logging fails
+      }
+      
       // Cast to any to bypass type checking since we know isArchived is valid
       const updatedBoard = await storage.updateBoard(id, { isArchived: false } as any);
       res.json(updatedBoard);

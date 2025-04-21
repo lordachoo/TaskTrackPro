@@ -85,11 +85,9 @@ export function EventLogDetails({ log, open, onOpenChange }: EventLogDetailsProp
                     </AvatarFallback>
                   </Avatar>
                   <span>{log.user.username}</span>
-                  {log.user.fullName && (
-                    <span className="text-muted-foreground text-xs">
-                      ({log.user.fullName})
-                    </span>
-                  )}
+                  <span className="text-muted-foreground text-xs">
+                    ({log.user.role})
+                  </span>
                 </>
               ) : (
                 <span className="text-muted-foreground">Unknown user</span>

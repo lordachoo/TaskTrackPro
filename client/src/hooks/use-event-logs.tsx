@@ -3,10 +3,35 @@ import { getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { EventLog } from "@shared/schema";
 
-// Extended EventLog type with username field which is joined from server
-export interface EventLogWithUser extends EventLog {
-  username: string;
+// Extended types for event log details
+export interface EventLogDetails {
+  // For task/entity data
+  task?: Record<string, any>;
+  board?: Record<string, any>;
+  category?: Record<string, any>;
+  user?: Record<string, any>;
+  customField?: Record<string, any>;
+  
+  // For updates
+  before?: Record<string, any>;
+  after?: Record<string, any>;
+  changedFields?: string[];
+  
+  // For any other details
+  [key: string]: any;
+}
+
+// Extended EventLog type with user information which is joined from server
+export interface EventLogWithUser extends Omit<EventLog, 'details'> {
   timestamp: string; // The UI expects timestamp format
+  details: EventLogDetails;
+  user?: {
+    id: number;
+    username: string;
+    email: string;
+    role: string;
+    avatarColor?: string;
+  };
 }
 
 // Define types for event log data
