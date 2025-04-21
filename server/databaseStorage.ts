@@ -428,27 +428,40 @@ export class DatabaseStorage implements IStorage {
   
   async getEventLogs(options?: { limit?: number, offset?: number, userId?: number, entityType?: string }): Promise<EventLog[]> {
     try {
-      let query = db.select().from(eventLogs);
+      let queryBuilder = db.select().from(eventLogs);
       
       // Apply filters
+      let conditions = [];
       if (options?.userId) {
-        query = query.where(eq(eventLogs.userId, options.userId));
+        conditions.push(eq(eventLogs.userId, options.userId));
       }
       
       if (options?.entityType) {
-        query = query.where(eq(eventLogs.entityType, options.entityType));
+        conditions.push(eq(eventLogs.entityType, options.entityType));
+      }
+      
+      // Apply combined where conditions if any exist
+      if (conditions.length > 0) {
+        if (conditions.length === 1) {
+          queryBuilder = queryBuilder.where(conditions[0]);
+        } else {
+          queryBuilder = queryBuilder.where(and(...conditions));
+        }
       }
       
       // Sort by createdAt descending (newest first)
-      query = query.orderBy(desc(eventLogs.createdAt));
+      queryBuilder = queryBuilder.orderBy(desc(eventLogs.createdAt));
       
       // Apply pagination
       if (options?.limit) {
         const offset = options.offset || 0;
-        query = query.limit(options.limit).offset(offset);
+        queryBuilder = queryBuilder.limit(options.limit).offset(offset);
       }
       
-      return await query;
+      console.log('Executing event logs query');
+      const result = await queryBuilder;
+      console.log(`Retrieved ${result.length} event logs`);
+      return result;
     } catch (error) {
       console.error('Error getting event logs:', error);
       return [];
@@ -467,17 +480,30 @@ export class DatabaseStorage implements IStorage {
   
   async getEventLogCount(filters?: { userId?: number, entityType?: string }): Promise<number> {
     try {
-      let query = db.select({ count: count() }).from(eventLogs);
+      let queryBuilder = db.select({ count: count() }).from(eventLogs);
       
+      // Apply filters
+      let conditions = [];
       if (filters?.userId) {
-        query = query.where(eq(eventLogs.userId, filters.userId));
+        conditions.push(eq(eventLogs.userId, filters.userId));
       }
       
       if (filters?.entityType) {
-        query = query.where(eq(eventLogs.entityType, filters.entityType));
+        conditions.push(eq(eventLogs.entityType, filters.entityType));
       }
       
-      const [result] = await query;
+      // Apply combined where conditions if any exist
+      if (conditions.length > 0) {
+        if (conditions.length === 1) {
+          queryBuilder = queryBuilder.where(conditions[0]);
+        } else {
+          queryBuilder = queryBuilder.where(and(...conditions));
+        }
+      }
+      
+      console.log('Executing event logs count query');
+      const [result] = await queryBuilder;
+      console.log(`Count result:`, result);
       return Number(result?.count || 0);
     } catch (error) {
       console.error('Error counting event logs:', error);

@@ -414,6 +414,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store the category ID before deleting
       const categoryId = task.categoryId;
       
+      // Log the task deletion event with task details for auditing
+      try {
+        await logTaskEvent(
+          req,
+          EventTypes.TASK_DELETED,
+          id,
+          {
+            task: {
+              title: task.title,
+              description: task.description,
+              categoryId: task.categoryId,
+              priority: task.priority,
+              dueDate: task.dueDate,
+              assignees: task.assignees
+            }
+          }
+        );
+        console.log(`Logged task deletion event for task ${id}`);
+      } catch (logError) {
+        console.error("Error logging task deletion:", logError);
+        // Continue with deletion even if logging fails
+      }
+      
       // Delete the task
       const success = await storage.deleteTask(id);
       if (!success) {
