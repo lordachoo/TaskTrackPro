@@ -871,20 +871,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Event Logs endpoints - Admin only
   apiRouter.get("/eventLogs/stats/counts", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
     try {
-      // Get counts for different entity types
-      const taskCount = await storage.getEventLogCount({ entityType: 'task' });
-      const boardCount = await storage.getEventLogCount({ entityType: 'board' });
-      const categoryCount = await storage.getEventLogCount({ entityType: 'category' });
-      const userCount = await storage.getEventLogCount({ entityType: 'user' });
-      const customFieldCount = await storage.getEventLogCount({ entityType: 'customField' });
+      // Get all event logs
+      const logs = await storage.getEventLogs({ limit: 1000 }); // Get a large number to calculate stats
+      
+      // Count events by type
+      let taskCount = 0;
+      let boardCount = 0;
+      let categoryCount = 0;
+      let userCount = 0;
+      let customFieldCount = 0;
+      
+      // Count by event type prefix (task.*, board.*, etc.)
+      logs.forEach(log => {
+        const eventType = log.eventType.split('.')[0]; // Get the prefix (task, board, etc.)
+        
+        switch(eventType) {
+          case 'task':
+            taskCount++;
+            break;
+          case 'board':
+            boardCount++;
+            break;
+          case 'category':
+            categoryCount++;
+            break;
+          case 'user':
+            userCount++;
+            break;
+          case 'custom_field':
+            customFieldCount++;
+            break;
+        }
+      });
+      
+      const totalCount = logs.length;
       
       res.json({
-        task: taskCount,
-        board: boardCount,
-        category: categoryCount,
-        user: userCount,
-        customField: customFieldCount,
-        total: taskCount + boardCount + categoryCount + userCount + customFieldCount
+        taskCount: taskCount,
+        boardCount: boardCount,
+        categoryCount: categoryCount,
+        userCount: userCount,
+        customFieldCount: customFieldCount,
+        totalCount: totalCount
       });
     } catch (error) {
       console.error("Error fetching event log stats:", error);
