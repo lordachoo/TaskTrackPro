@@ -314,7 +314,9 @@ export default function Settings() {
             <Tabs defaultValue="fields">
               <TabsList className="mb-6">
                 <TabsTrigger value="fields">Custom Fields</TabsTrigger>
-                <TabsTrigger value="users">User Management</TabsTrigger>
+                {user?.role === 'admin' && (
+                  <TabsTrigger value="users">User Management</TabsTrigger>
+                )}
               </TabsList>
               
               <TabsContent value="fields">
@@ -518,25 +520,27 @@ export default function Settings() {
                 </Card>
               </TabsContent>
               
-              <TabsContent value="users">
-                {/* Registration Settings */}
-                <RegistrationSetting />
-                
-                {/* User List */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>User Management</CardTitle>
-                    <CardDescription>
-                      Add, edit, and manage users for your organization
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div>
-                      <UserList />
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+              {user?.role === 'admin' && (
+                <TabsContent value="users">
+                  {/* Registration Settings */}
+                  <RegistrationSetting />
+                  
+                  {/* User List */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>User Management</CardTitle>
+                      <CardDescription>
+                        Add, edit, and manage users for your organization
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div>
+                        <UserList />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              )}
             </Tabs>
           </div>
         </div>
