@@ -920,18 +920,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all event logs
       const logs = await storage.getEventLogs({ limit: 1000 }); // Get a large number to calculate stats
       
-      // Count events by type
+      // Count by entity type instead of event type prefix
       let taskCount = 0;
       let boardCount = 0;
       let categoryCount = 0;
       let userCount = 0;
       let customFieldCount = 0;
       
-      // Count by event type prefix (task.*, board.*, etc.)
+      // Debug all event logs to see what's happening
+      console.log("ALL EVENT LOGS:", logs.map(log => ({
+        eventType: log.eventType,
+        entityType: log.entityType
+      })));
+      
+      // Count by entityType field which is more reliable
       logs.forEach(log => {
-        const eventType = log.eventType.split('.')[0]; // Get the prefix (task, board, etc.)
+        const entityType = log.entityType;
+        console.log(`Processing event: ${log.eventType}, Entity Type: ${entityType}`);
         
-        switch(eventType) {
+        switch(entityType) {
           case 'task':
             taskCount++;
             break;
@@ -944,13 +951,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           case 'user':
             userCount++;
             break;
-          case 'custom_field':
+          case 'customField':
             customFieldCount++;
             break;
         }
       });
       
       const totalCount = logs.length;
+      
+      console.log("FINAL COUNTS:", {
+        taskCount,
+        boardCount,
+        categoryCount,
+        userCount,
+        customFieldCount,
+        totalCount
+      });
       
       res.json({
         taskCount: taskCount,
