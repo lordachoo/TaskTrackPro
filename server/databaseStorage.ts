@@ -10,7 +10,7 @@ import {
 } from "@shared/schema";
 import { IStorage } from "./storage";
 import { db } from "./db";
-import { and, eq, asc, desc, count, sql } from "drizzle-orm";
+import { and, eq, asc, desc, count, sql, inArray } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 export class DatabaseStorage implements IStorage {
@@ -428,63 +428,76 @@ export class DatabaseStorage implements IStorage {
   
   async getEventLogs(options?: { limit?: number, offset?: number, userId?: number, entityType?: string }): Promise<EventLog[]> {
     try {
-      // Build query with user join
-      const queryBuilder = db.select({
-        eventLog: eventLogs,
-        user: {
+      // Build query parts separately for type safety
+      let whereParts = [];
+      
+      if (options?.userId) {
+        whereParts.push(`"userId" = ${options.userId}`);
+      }
+      
+      if (options?.entityType) {
+        whereParts.push(`"entityType" = '${options.entityType}'`);
+      }
+      
+      // Build a SQL query string
+      let sqlQueryStr = 'SELECT * FROM "event_logs"';
+      
+      if (whereParts.length > 0) {
+        sqlQueryStr += ' WHERE ' + whereParts.join(' AND ');
+      }
+      
+      sqlQueryStr += ' ORDER BY "createdAt" DESC';
+      
+      if (options?.limit) {
+        const offset = options.offset || 0;
+        sqlQueryStr += ` LIMIT ${options.limit} OFFSET ${offset}`;
+      }
+      
+      // Execute the raw SQL query
+      console.log('Executing event logs query');
+      const logs = await db.execute(sql.raw(sqlQueryStr));
+      console.log(`Retrieved ${logs.length} event logs`);
+      
+      // Now fetch all the user details for these logs
+      const userIds = logs.map(log => log.userId).filter(id => id !== null) as number[];
+      let userMap: Record<number, any> = {};
+      
+      if (userIds.length > 0) {
+        // Create array of unique user IDs the simple way
+        const uniqueUserIds: number[] = [];
+        userIds.forEach(id => {
+          if (!uniqueUserIds.includes(id)) {
+            uniqueUserIds.push(id);
+          }
+        });
+        
+        const userDetails = await db.select({
           id: users.id,
           username: users.username,
           email: users.email,
           role: users.role,
           avatarColor: users.avatarColor
-        }
-      })
-      .from(eventLogs)
-      .leftJoin(users, eq(eventLogs.userId, users.id));
-      
-      // Apply filters
-      let conditions = [];
-      if (options?.userId) {
-        conditions.push(eq(eventLogs.userId, options.userId));
+        })
+        .from(users)
+        .where(inArray(users.id, uniqueUserIds));
+        
+        // Create a lookup map
+        userMap = userDetails.reduce((acc, user) => {
+          acc[user.id] = user;
+          return acc;
+        }, {} as Record<number, any>);
       }
       
-      if (options?.entityType) {
-        conditions.push(eq(eventLogs.entityType, options.entityType));
-      }
-      
-      // Apply combined where conditions if any exist
-      let filteredQuery = queryBuilder;
-      if (conditions.length > 0) {
-        if (conditions.length === 1) {
-          filteredQuery = queryBuilder.where(conditions[0]);
-        } else {
-          filteredQuery = queryBuilder.where(and(...conditions));
-        }
-      }
-      
-      // Sort by createdAt descending (newest first)
-      const orderedQuery = filteredQuery.orderBy(desc(eventLogs.createdAt));
-      
-      // Apply pagination
-      let paginatedQuery = orderedQuery;
-      if (options?.limit) {
-        const offset = options.offset || 0;
-        paginatedQuery = orderedQuery.limit(options.limit).offset(offset);
-      }
-      
-      console.log('Executing event logs query');
-      const result = await paginatedQuery;
-      console.log(`Retrieved ${result.length} event logs`);
-      
-      // Transform the result to include user information
-      return result.map(row => {
-        const log = { ...row.eventLog };
-        if (row.user) {
-          // @ts-ignore - Add user property to event log
-          log.user = row.user;
+      // Combine the logs with user information
+      const result = logs.map(log => {
+        if (log.userId && userMap[log.userId]) {
+          // @ts-ignore - Add user property
+          log.user = userMap[log.userId];
         }
         return log;
       });
+      
+      return result;
     } catch (error) {
       console.error('Error getting event logs:', error);
       return [];
@@ -493,28 +506,27 @@ export class DatabaseStorage implements IStorage {
   
   async getEventLog(id: number): Promise<EventLog | undefined> {
     try {
-      // Query with user join
-      const [result] = await db.select({
-        eventLog: eventLogs,
-        user: {
+      // Get the log
+      const [log] = await db.select().from(eventLogs).where(eq(eventLogs.id, id));
+      
+      if (!log) return undefined;
+      
+      // Get the associated user if applicable
+      if (log.userId) {
+        const [userInfo] = await db.select({
           id: users.id,
           username: users.username,
           email: users.email,
           role: users.role,
           avatarColor: users.avatarColor
+        })
+        .from(users)
+        .where(eq(users.id, log.userId));
+        
+        if (userInfo) {
+          // @ts-ignore - Add user property to event log
+          log.user = userInfo;
         }
-      })
-      .from(eventLogs)
-      .leftJoin(users, eq(eventLogs.userId, users.id))
-      .where(eq(eventLogs.id, id));
-      
-      if (!result) return undefined;
-      
-      // Transform the result to include user information
-      const log = { ...result.eventLog };
-      if (result.user) {
-        // @ts-ignore - Add user property
-        log.user = result.user;
       }
       
       return log;
