@@ -1047,13 +1047,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get("/eventLogs", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
-      const offset = req.query.page ? parseInt(req.query.page as string) * limit : 0;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
       const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
       const entityType = req.query.entityType as string | undefined;
+      const eventType = req.query.eventType as string | undefined;
       
-      const logs = await storage.getEventLogs({ limit, offset, userId, entityType });
-      const total = await storage.getEventLogCount({ userId, entityType });
+      console.log("Executing event logs query with JOIN");
+      const logs = await storage.getEventLogs({ 
+        limit, 
+        offset, 
+        userId, 
+        entityType,
+        eventType 
+      });
       
+      console.log(`Retrieved ${logs.length} event logs`);
+      console.log("Executing event logs count query");
+      const total = await storage.getEventLogCount({ 
+        userId, 
+        entityType,
+        eventType 
+      });
+      
+      console.log(`Count result: ${total}`);
       res.json({
         logs,
         pagination: {

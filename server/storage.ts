@@ -57,9 +57,9 @@ export interface IStorage {
   
   // Event Logging methods
   createEventLog(log: InsertEventLog): Promise<EventLog>;
-  getEventLogs(options?: { limit?: number, offset?: number, userId?: number, entityType?: string }): Promise<EventLog[]>;
+  getEventLogs(options?: { limit?: number, offset?: number, userId?: number, entityType?: string, eventType?: string }): Promise<EventLog[]>;
   getEventLog(id: number): Promise<EventLog | undefined>;
-  getEventLogCount(filters?: { userId?: number, entityType?: string }): Promise<number>;
+  getEventLogCount(filters?: { userId?: number, entityType?: string, eventType?: string }): Promise<number>;
 }
 
 // In-memory storage implementation

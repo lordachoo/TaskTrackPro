@@ -75,12 +75,14 @@ export function useEventLogs({
   page = 1,
   limit = 25,
   userId = null,
-  entityType = null
+  entityType = null,
+  eventType = null
 }: {
   page?: number;
   limit?: number;
   userId?: number | null;
   entityType?: string | null;
+  eventType?: string | null;
 }) {
   const { toast } = useToast();
   
@@ -90,11 +92,12 @@ export function useEventLogs({
   queryParams.append('offset', ((page - 1) * limit).toString());
   if (userId) queryParams.append('userId', userId.toString());
   if (entityType) queryParams.append('entityType', entityType);
+  if (eventType) queryParams.append('eventType', eventType);
   
   const endpoint = `/api/eventLogs?${queryParams.toString()}`;
   
   return useQuery<PaginatedEventLogs>({
-    queryKey: ['/api/eventLogs', page, limit, userId, entityType],
+    queryKey: ['/api/eventLogs', page, limit, userId, entityType, eventType],
     queryFn: getQueryFn({ on401: "throw" }),
     staleTime: 1 * 60 * 1000 // 1 minute
   });
