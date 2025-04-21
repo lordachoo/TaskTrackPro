@@ -428,7 +428,19 @@ export class DatabaseStorage implements IStorage {
   
   async getEventLogs(options?: { limit?: number, offset?: number, userId?: number, entityType?: string }): Promise<EventLog[]> {
     try {
-      let queryBuilder = db.select().from(eventLogs);
+      // Build query with user join
+      const queryBuilder = db.select({
+        eventLog: eventLogs,
+        user: {
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          role: users.role,
+          avatarColor: users.avatarColor
+        }
+      })
+      .from(eventLogs)
+      .leftJoin(users, eq(eventLogs.userId, users.id));
       
       // Apply filters
       let conditions = [];
@@ -441,27 +453,38 @@ export class DatabaseStorage implements IStorage {
       }
       
       // Apply combined where conditions if any exist
+      let filteredQuery = queryBuilder;
       if (conditions.length > 0) {
         if (conditions.length === 1) {
-          queryBuilder = queryBuilder.where(conditions[0]);
+          filteredQuery = queryBuilder.where(conditions[0]);
         } else {
-          queryBuilder = queryBuilder.where(and(...conditions));
+          filteredQuery = queryBuilder.where(and(...conditions));
         }
       }
       
       // Sort by createdAt descending (newest first)
-      queryBuilder = queryBuilder.orderBy(desc(eventLogs.createdAt));
+      const orderedQuery = filteredQuery.orderBy(desc(eventLogs.createdAt));
       
       // Apply pagination
+      let paginatedQuery = orderedQuery;
       if (options?.limit) {
         const offset = options.offset || 0;
-        queryBuilder = queryBuilder.limit(options.limit).offset(offset);
+        paginatedQuery = orderedQuery.limit(options.limit).offset(offset);
       }
       
       console.log('Executing event logs query');
-      const result = await queryBuilder;
+      const result = await paginatedQuery;
       console.log(`Retrieved ${result.length} event logs`);
-      return result;
+      
+      // Transform the result to include user information
+      return result.map(row => {
+        const log = { ...row.eventLog };
+        if (row.user) {
+          // @ts-ignore - Add user property to event log
+          log.user = row.user;
+        }
+        return log;
+      });
     } catch (error) {
       console.error('Error getting event logs:', error);
       return [];
@@ -470,7 +493,30 @@ export class DatabaseStorage implements IStorage {
   
   async getEventLog(id: number): Promise<EventLog | undefined> {
     try {
-      const [log] = await db.select().from(eventLogs).where(eq(eventLogs.id, id));
+      // Query with user join
+      const [result] = await db.select({
+        eventLog: eventLogs,
+        user: {
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          role: users.role,
+          avatarColor: users.avatarColor
+        }
+      })
+      .from(eventLogs)
+      .leftJoin(users, eq(eventLogs.userId, users.id))
+      .where(eq(eventLogs.id, id));
+      
+      if (!result) return undefined;
+      
+      // Transform the result to include user information
+      const log = { ...result.eventLog };
+      if (result.user) {
+        // @ts-ignore - Add user property
+        log.user = result.user;
+      }
+      
       return log;
     } catch (error) {
       console.error(`Error getting event log ${id}:`, error);
