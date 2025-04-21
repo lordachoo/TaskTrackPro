@@ -5,6 +5,7 @@ import { eq, and, count, sql, isNull, ilike, or, asc, desc, inArray, not } from 
 import { scrypt, randomBytes, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
 import { IStorage } from './storage';
+import * as bcrypt from 'bcrypt';
 
 const scryptAsync = promisify(scrypt);
 
@@ -37,21 +38,51 @@ export class DatabaseStorage implements IStorage {
 
   async verifyPassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
     try {
-      // For simple in-memory testing when passwords match exactly
+      console.log('Attempting to verify password with strategies:');
+      
+      // Strategy 1: Direct string comparison (for development/testing)
       if (plainPassword === hashedPassword) {
+        console.log('- Direct comparison: SUCCESS');
         return true;
+      } else {
+        console.log('- Direct comparison: failed');
       }
       
-      // For properly hashed passwords
+      // Strategy 2: Custom hash.salt format
       if (hashedPassword && hashedPassword.includes('.')) {
+        console.log('- Custom hash.salt format detected');
         const [hash, salt] = hashedPassword.split('.');
-        if (!hash || !salt) return false;
-        
-        const hashBuffer = Buffer.from(hash, 'hex');
-        const derivedKey = await scryptAsync(plainPassword, salt, 64) as Buffer;
-        return timingSafeEqual(hashBuffer, derivedKey);
+        if (!hash || !salt) {
+          console.log('  - Invalid format (missing hash or salt)');
+        } else {
+          try {
+            const hashBuffer = Buffer.from(hash, 'hex');
+            const derivedKey = await scryptAsync(plainPassword, salt, 64) as Buffer;
+            const result = timingSafeEqual(hashBuffer, derivedKey);
+            console.log(`  - Verification result: ${result ? 'SUCCESS' : 'failed'}`);
+            if (result) return true;
+          } catch (e) {
+            console.log('  - Error in custom hash verification:', e);
+          }
+        }
       }
       
+      // Strategy 3: bcrypt (most likely format for passwords starting with $2b$)
+      if (hashedPassword && hashedPassword.startsWith('$2b$')) {
+        console.log('- bcrypt format detected');
+        try {
+          const result = await bcrypt.compare(plainPassword, hashedPassword);
+          console.log(`  - bcrypt verification result: ${result ? 'SUCCESS' : 'failed'}`);
+          return result;
+        } catch (e) {
+          console.log('  - Error in bcrypt verification:', e);
+        }
+      } else {
+        console.log('- Not a bcrypt hash');
+      }
+      
+      // No strategy worked
+      console.log('All verification strategies failed');
       return false;
     } catch (error) {
       console.error('Error verifying password:', error);
