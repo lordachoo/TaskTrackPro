@@ -7,6 +7,7 @@ import createMemoryStore from "memorystore";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { pool } from "./db";
+import { logUserEvent, EventTypes } from "./eventLogger";
 
 declare global {
   namespace Express {
@@ -153,21 +154,43 @@ export function setupAuth(app: Express) {
         });
       }
       
-      req.login(user, (err) => {
+      req.login(user, async (err) => {
         if (err) {
           console.error('Session login error:', err);
           return next(err);
         }
         
         console.log(`User logged in successfully: ${user.username}`);
+        
+        // Log the user login event
+        await logUserEvent(
+          req,
+          EventTypes.USER_LOGIN,
+          user.id,
+          { username: user.username }
+        );
+        
         return res.status(200).json(user);
       });
     })(req, res, next);
   });
 
-  app.post("/api/logout", (req, res, next) => {
-    const username = (req.user as Express.User)?.username || 'Unknown';
+  app.post("/api/logout", async (req, res, next) => {
+    const user = req.user as Express.User;
+    const username = user?.username || 'Unknown';
+    const userId = user?.id || 0;
+    
     console.log(`Logout request for user: ${username}`);
+    
+    // Log the logout event before the session is destroyed
+    if (user) {
+      await logUserEvent(
+        req,
+        EventTypes.USER_LOGOUT,
+        userId,
+        { username }
+      );
+    }
     
     req.logout((err) => {
       if (err) {
@@ -231,12 +254,32 @@ export function setupAuth(app: Express) {
       
       console.log(`User registered successfully: ${newUser.username}`);
       
+      // Log the user creation event
+      await logUserEvent(
+        req,
+        EventTypes.USER_CREATED,
+        newUser.id,
+        {
+          username: newUser.username,
+          fullName: newUser.fullName,
+          role: newUser.role
+        }
+      );
+      
       // Log user in automatically after registration
-      req.login(newUser, (err) => {
+      req.login(newUser, async (err) => {
         if (err) {
           console.error('Auto-login after registration error:', err);
           return next(err);
         }
+        
+        // Log the login event after registration
+        await logUserEvent(
+          req,
+          EventTypes.USER_LOGIN,
+          newUser.id,
+          { username: newUser.username }
+        );
         
         // Don't return the password hash to the client
         const { password: _, ...userWithoutPassword } = newUser;

@@ -772,6 +772,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.createUser(validatedData);
       console.log("User created in database:", user);
       
+      // Log the user creation event
+      await logUserEvent(
+        req, 
+        EventTypes.USER_CREATED, 
+        user.id, 
+        { 
+          username: user.username,
+          fullName: user.fullName,
+          role: user.role
+        }
+      );
+      
       // Remove password from response
       const { password, ...userWithoutPassword } = user;
       
@@ -825,6 +837,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Failed to update user" });
       }
       
+      // Log the user update event with details of what changed
+      await logUserEvent(
+        req, 
+        EventTypes.USER_UPDATED, 
+        updatedUser.id, 
+        {
+          previous: {
+            username: user.username,
+            fullName: user.fullName,
+            role: user.role,
+            isActive: user.isActive
+          },
+          updated: {
+            username: updatedUser.username,
+            fullName: updatedUser.fullName,
+            role: updatedUser.role,
+            isActive: updatedUser.isActive
+          },
+          changes: Object.keys(validatedData)
+        }
+      );
+      
       // Remove password from response
       const { password, ...userWithoutPassword } = updatedUser;
       
@@ -860,6 +894,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!success) {
         return res.status(500).json({ message: "Failed to delete user" });
       }
+      
+      // Log the user deletion event
+      await logUserEvent(
+        req, 
+        EventTypes.USER_DELETED, 
+        id, 
+        {
+          username: user.username,
+          fullName: user.fullName,
+          role: user.role
+        }
+      );
       
       res.status(204).send();
     } catch (error) {
