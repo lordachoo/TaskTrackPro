@@ -8,9 +8,11 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Archived from "@/pages/archived";
 import Settings from "@/pages/settings";
+import EventLogs from "@/pages/event-logs";
 import AuthPage from "@/pages/auth-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
+import { AdminRoute } from "@/lib/admin-route";
 
 function Router() {
   return (
@@ -18,6 +20,7 @@ function Router() {
       <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/archived" component={Archived} />
       <ProtectedRoute path="/settings" component={Settings} />
+      <AdminRoute path="/event-logs" component={EventLogs} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>

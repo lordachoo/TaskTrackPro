@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, Pencil, FileText } from "lucide-react";
 import { 
   Card, 
   CardContent, 
@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
+import {
   Table, 
   TableBody, 
   TableCell, 
@@ -27,6 +27,8 @@ import TopNav from "@/components/layout/TopNav";
 import UserList from "@/components/user/UserList";
 import RegistrationSetting from "@/components/user/RegistrationSetting";
 import { Board, CustomField } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
+import { Link } from "wouter";
 
 export default function Settings() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
