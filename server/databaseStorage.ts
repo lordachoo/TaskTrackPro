@@ -428,76 +428,74 @@ export class DatabaseStorage implements IStorage {
   
   async getEventLogs(options?: { limit?: number, offset?: number, userId?: number, entityType?: string }): Promise<EventLog[]> {
     try {
-      // Build query parts separately for type safety
-      let whereParts = [];
+      // Create a SQL query with LEFT JOIN to get user data directly
+      let query = `
+        SELECT 
+          e.*,
+          CASE WHEN u.id IS NOT NULL THEN 
+            json_build_object(
+              'id', u.id,
+              'username', u.username,
+              'email', u.email,
+              'role', u.role,
+              'avatarColor', u."avatarColor"
+            )
+          ELSE NULL
+          END as user_data
+        FROM "event_logs" e
+        LEFT JOIN "users" u ON e."userId" = u.id
+      `;
       
+      const whereClauses = [];
       if (options?.userId) {
-        whereParts.push(`"userId" = ${options.userId}`);
+        whereClauses.push(`e."userId" = ${options.userId}`);
       }
       
       if (options?.entityType) {
-        whereParts.push(`"entityType" = '${options.entityType}'`);
+        whereClauses.push(`e."entityType" = '${options.entityType}'`);
       }
       
-      // Build a SQL query string
-      let sqlQueryStr = 'SELECT * FROM "event_logs"';
-      
-      if (whereParts.length > 0) {
-        sqlQueryStr += ' WHERE ' + whereParts.join(' AND ');
+      if (whereClauses.length > 0) {
+        query += ` WHERE ${whereClauses.join(' AND ')}`;
       }
       
-      sqlQueryStr += ' ORDER BY "createdAt" DESC';
+      // Add ordering and pagination
+      query += ` ORDER BY e."createdAt" DESC`;
       
       if (options?.limit) {
         const offset = options.offset || 0;
-        sqlQueryStr += ` LIMIT ${options.limit} OFFSET ${offset}`;
+        query += ` LIMIT ${options.limit} OFFSET ${offset}`;
       }
       
-      // Execute the raw SQL query
-      console.log('Executing event logs query');
-      const logs = await db.execute(sql.raw(sqlQueryStr));
-      console.log(`Retrieved ${logs.length} event logs`);
+      console.log('Executing event logs query with JOIN');
+      const result = await db.execute(sql.raw(query));
+      console.log(`Retrieved ${result.rows.length} event logs`);
       
-      // Now fetch all the user details for these logs
-      const userIds = logs.map(log => log.userId).filter(id => id !== null) as number[];
-      let userMap: Record<number, any> = {};
-      
-      if (userIds.length > 0) {
-        // Create array of unique user IDs the simple way
-        const uniqueUserIds: number[] = [];
-        userIds.forEach(id => {
-          if (!uniqueUserIds.includes(id)) {
-            uniqueUserIds.push(id);
-          }
-        });
+      // Format the result to match EventLog with user property
+      const logs = result.rows.map((row: any) => {
+        const log: EventLog = {
+          id: Number(row.id),
+          eventType: String(row.eventType),
+          entityType: String(row.entityType), 
+          entityId: Number(row.entityId),
+          userId: Number(row.userId),
+          details: row.details,
+          ipAddress: row.ipAddress ? String(row.ipAddress) : null,
+          userAgent: row.userAgent ? String(row.userAgent) : null,
+          createdAt: typeof row.createdAt === 'string' ? new Date(row.createdAt) : 
+                   row.createdAt instanceof Date ? row.createdAt : new Date()
+        };
         
-        const userDetails = await db.select({
-          id: users.id,
-          username: users.username,
-          email: users.email,
-          role: users.role,
-          avatarColor: users.avatarColor
-        })
-        .from(users)
-        .where(inArray(users.id, uniqueUserIds));
-        
-        // Create a lookup map
-        userMap = userDetails.reduce((acc, user) => {
-          acc[user.id] = user;
-          return acc;
-        }, {} as Record<number, any>);
-      }
-      
-      // Combine the logs with user information
-      const result = logs.map(log => {
-        if (log.userId && userMap[log.userId]) {
-          // @ts-ignore - Add user property
-          log.user = userMap[log.userId];
+        // Add user data if present
+        if (row.user_data) {
+          // @ts-ignore
+          log.user = row.user_data;
         }
+        
         return log;
       });
       
-      return result;
+      return logs;
     } catch (error) {
       console.error('Error getting event logs:', error);
       return [];
@@ -506,27 +504,49 @@ export class DatabaseStorage implements IStorage {
   
   async getEventLog(id: number): Promise<EventLog | undefined> {
     try {
-      // Get the log
-      const [log] = await db.select().from(eventLogs).where(eq(eventLogs.id, id));
+      // Use SQL query with JOIN to get both log and user data
+      const query = `
+        SELECT 
+          e.*,
+          CASE WHEN u.id IS NOT NULL THEN 
+            json_build_object(
+              'id', u.id,
+              'username', u.username,
+              'email', u.email,
+              'role', u.role,
+              'avatarColor', u."avatarColor"
+            )
+          ELSE NULL
+          END as user_data
+        FROM "event_logs" e
+        LEFT JOIN "users" u ON e."userId" = u.id
+        WHERE e.id = ${id}
+      `;
       
-      if (!log) return undefined;
+      const result = await db.execute(sql.raw(query));
       
-      // Get the associated user if applicable
-      if (log.userId) {
-        const [userInfo] = await db.select({
-          id: users.id,
-          username: users.username,
-          email: users.email,
-          role: users.role,
-          avatarColor: users.avatarColor
-        })
-        .from(users)
-        .where(eq(users.id, log.userId));
-        
-        if (userInfo) {
-          // @ts-ignore - Add user property to event log
-          log.user = userInfo;
-        }
+      if (!result.rows.length) {
+        return undefined;
+      }
+      
+      const row = result.rows[0];
+      const log: EventLog = {
+        id: Number(row.id),
+        eventType: String(row.eventType),
+        entityType: String(row.entityType),
+        entityId: Number(row.entityId),
+        userId: Number(row.userId),
+        details: row.details,
+        ipAddress: row.ipAddress ? String(row.ipAddress) : null,
+        userAgent: row.userAgent ? String(row.userAgent) : null,
+        createdAt: typeof row.createdAt === 'string' ? new Date(row.createdAt) : 
+                 row.createdAt instanceof Date ? row.createdAt : new Date()
+      };
+      
+      // Add user data if present
+      if (row.user_data) {
+        // @ts-ignore
+        log.user = row.user_data;
       }
       
       return log;
@@ -538,31 +558,30 @@ export class DatabaseStorage implements IStorage {
   
   async getEventLogCount(filters?: { userId?: number, entityType?: string }): Promise<number> {
     try {
-      let queryBuilder = db.select({ count: count() }).from(eventLogs);
+      // Build SQL for count query with optional filters
+      let query = `SELECT COUNT(*) as count FROM "event_logs"`;
       
-      // Apply filters
-      let conditions = [];
+      const whereClauses = [];
       if (filters?.userId) {
-        conditions.push(eq(eventLogs.userId, filters.userId));
+        whereClauses.push(`"userId" = ${filters.userId}`);
       }
       
       if (filters?.entityType) {
-        conditions.push(eq(eventLogs.entityType, filters.entityType));
+        whereClauses.push(`"entityType" = '${filters.entityType}'`);
       }
       
-      // Apply combined where conditions if any exist
-      if (conditions.length > 0) {
-        if (conditions.length === 1) {
-          queryBuilder = queryBuilder.where(conditions[0]);
-        } else {
-          queryBuilder = queryBuilder.where(and(...conditions));
-        }
+      if (whereClauses.length > 0) {
+        query += ` WHERE ${whereClauses.join(' AND ')}`;
       }
       
       console.log('Executing event logs count query');
-      const [result] = await queryBuilder;
-      console.log(`Count result:`, result);
-      return Number(result?.count || 0);
+      const result = await db.execute(sql.raw(query));
+      const countResult = result.rows[0];
+      const count = countResult && typeof countResult.count !== 'undefined' ? 
+                   parseInt(String(countResult.count)) : 0;
+      console.log(`Count result: ${count}`);
+      
+      return count;
     } catch (error) {
       console.error('Error counting event logs:', error);
       return 0;
