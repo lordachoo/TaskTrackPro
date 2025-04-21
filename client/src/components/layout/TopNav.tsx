@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { APP_NAME, APP_VERSION } from "@/lib/constants";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -105,8 +106,8 @@ export default function TopNav({
               <i className="ri-menu-line text-xl"></i>
             </button>
             <div className="md:hidden flex flex-col">
-              <span className="font-bold text-lg text-primary">TaskFlow</span>
-              <span className="text-gray-400 text-xs mt-[-5px]">v1.1</span>
+              <span className="font-bold text-lg text-primary">{APP_NAME}</span>
+              <span className="text-gray-400 text-xs mt-[-5px]">{APP_VERSION}</span>
             </div>
 
             {/* Mobile Board Selector - Only show when there are multiple boards */}

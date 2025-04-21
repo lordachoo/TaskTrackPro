@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { LayoutDashboard, Archive, Settings } from "lucide-react";
+import { APP_NAME, APP_VERSION } from "@/lib/constants";
 
 interface SidebarProps {
   isOpen: boolean;
