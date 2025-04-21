@@ -434,7 +434,7 @@ export class MemStorage implements IStorage {
     return eventLog;
   }
   
-  async getEventLogs(options?: { limit?: number, offset?: number, userId?: number, entityType?: string }): Promise<EventLog[]> {
+  async getEventLogs(options?: { limit?: number, offset?: number, userId?: number, entityType?: string, eventType?: string }): Promise<EventLog[]> {
     let logs = Array.from(this.eventLogs.values());
     
     // Apply filters
@@ -444,6 +444,10 @@ export class MemStorage implements IStorage {
     
     if (options?.entityType) {
       logs = logs.filter(log => log.entityType === options.entityType);
+    }
+    
+    if (options?.eventType) {
+      logs = logs.filter(log => log.eventType === options.eventType);
     }
     
     // Sort by createdAt descending (newest first)
@@ -462,7 +466,7 @@ export class MemStorage implements IStorage {
     return this.eventLogs.get(id);
   }
   
-  async getEventLogCount(filters?: { userId?: number, entityType?: string }): Promise<number> {
+  async getEventLogCount(filters?: { userId?: number, entityType?: string, eventType?: string }): Promise<number> {
     let count = this.eventLogs.size;
     
     if (filters) {
@@ -474,6 +478,10 @@ export class MemStorage implements IStorage {
       
       if (filters.entityType) {
         logs = logs.filter(log => log.entityType === filters.entityType);
+      }
+      
+      if (filters.eventType) {
+        logs = logs.filter(log => log.eventType === filters.eventType);
       }
       
       count = logs.length;

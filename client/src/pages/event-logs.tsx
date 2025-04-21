@@ -68,9 +68,11 @@ export default function EventLogs() {
   const [filters, setFilters] = useState<{
     userId: number | null;
     entityType: string | null;
+    eventType: string | null;
   }>({
     userId: null,
-    entityType: null
+    entityType: null,
+    eventType: null
   });
   
   // Fetch log counts
@@ -91,7 +93,8 @@ export default function EventLogs() {
     page,
     limit,
     userId: filters.userId,
-    entityType: filters.entityType
+    entityType: filters.entityType,
+    eventType: filters.eventType
   });
   
   const logs = logsData?.logs || [];
@@ -103,11 +106,11 @@ export default function EventLogs() {
   };
   
   const handleResetFilters = () => {
-    setFilters({ userId: null, entityType: null });
+    setFilters({ userId: null, entityType: null, eventType: null });
     setPage(1);
   };
   
-  const handleFilterChange = (key: 'userId' | 'entityType', value: number | string | null) => {
+  const handleFilterChange = (key: 'userId' | 'entityType' | 'eventType', value: number | string | null) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setPage(1);
   };
@@ -276,12 +279,74 @@ export default function EventLogs() {
                     </select>
                   </div>
                   
+                  {/* Event Type Filter */}
+                  <div>
+                    <select
+                      className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm"
+                      value={filters.eventType || ''}
+                      onChange={(e) => {
+                        const value = e.target.value || null;
+                        handleFilterChange('eventType', value);
+                      }}
+                    >
+                      <option value="">All Event Types</option>
+                      
+                      {/* Task events */}
+                      <optgroup label="Task Events">
+                        <option value="task.created">Task Created</option>
+                        <option value="task.updated">Task Updated</option>
+                        <option value="task.deleted">Task Deleted</option>
+                        <option value="task.archived">Task Archived</option>
+                        <option value="task.restored">Task Restored</option>
+                        <option value="task.moved">Task Moved</option>
+                      </optgroup>
+                      
+                      {/* Board events */}
+                      <optgroup label="Board Events">
+                        <option value="board.created">Board Created</option>
+                        <option value="board.updated">Board Updated</option>
+                        <option value="board.deleted">Board Deleted</option>
+                        <option value="board.archived">Board Archived</option>
+                        <option value="board.restored">Board Restored</option>
+                      </optgroup>
+                      
+                      {/* Category events */}
+                      <optgroup label="Category Events">
+                        <option value="category.created">Category Created</option>
+                        <option value="category.updated">Category Updated</option>
+                        <option value="category.deleted">Category Deleted</option>
+                        <option value="category.reordered">Categories Reordered</option>
+                      </optgroup>
+                      
+                      {/* Custom Field events */}
+                      <optgroup label="Custom Field Events">
+                        <option value="customField.created">Custom Field Created</option>
+                        <option value="customField.updated">Custom Field Updated</option>
+                        <option value="customField.deleted">Custom Field Deleted</option>
+                      </optgroup>
+                      
+                      {/* User events */}
+                      <optgroup label="User Events">
+                        <option value="user.created">User Created</option>
+                        <option value="user.updated">User Updated</option>
+                        <option value="user.deleted">User Deleted</option>
+                        <option value="user.login">User Login</option>
+                        <option value="user.logout">User Logout</option>
+                      </optgroup>
+                      
+                      {/* System events */}
+                      <optgroup label="System Events">
+                        <option value="system.settingUpdated">System Setting Updated</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  
                   {/* Reset Filter Button */}
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleResetFilters}
-                    disabled={!filters.userId && !filters.entityType}
+                    disabled={!filters.userId && !filters.entityType && !filters.eventType}
                     className="ml-auto"
                   >
                     Reset Filters
