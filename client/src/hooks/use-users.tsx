@@ -18,14 +18,8 @@ export function useUsers() {
 
   return useQuery<User[]>({
     queryKey: ["/api/users"],
-    queryFn: getQueryFn(),
-    onError: (error: Error) => {
-      toast({
-        title: "Error fetching users",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+    queryFn: getQueryFn({ on401: "throw" }),
+    staleTime: 5 * 60 * 1000 // 5 minutes
   });
 }
 
@@ -34,14 +28,8 @@ export function useUser(userId: number) {
 
   return useQuery<User>({
     queryKey: ["/api/users", userId],
-    queryFn: getQueryFn({ customEndpoint: `/api/users/${userId}` }),
+    queryFn: getQueryFn({ on401: "throw" }),
     enabled: !!userId,
-    onError: (error: Error) => {
-      toast({
-        title: "Error fetching user",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+    staleTime: 5 * 60 * 1000 // 5 minutes
   });
 }

@@ -39,7 +39,7 @@ export function useEventLogCounts() {
   
   return useQuery<EventLogCounts>({
     queryKey: ['/api/eventLogs/stats/counts'],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ on401: "throw" }),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
@@ -71,7 +71,7 @@ export function useEventLogs({
   
   return useQuery<PaginatedEventLogs>({
     queryKey: ['/api/eventLogs', page, limit, userId, entityType],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ on401: "throw" }),
     staleTime: 1 * 60 * 1000 // 1 minute
   });
 }
@@ -82,9 +82,9 @@ export function useEventLogs({
 export function useEventLog(id: number) {
   const { toast } = useToast();
   
-  return useQuery<EventLog>({
+  return useQuery<EventLogWithUser>({
     queryKey: ['/api/eventLogs', id],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ on401: "throw" }),
     enabled: !!id,
     staleTime: 5 * 60 * 1000 // 5 minutes
   });
