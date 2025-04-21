@@ -479,7 +479,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async getEventLogs(options?: { limit?: number, offset?: number, userId?: number, entityType?: string }): Promise<EventLog[]> {
+  async getEventLogs(options?: { limit?: number, offset?: number, userId?: number, entityType?: string, eventType?: string }): Promise<EventLog[]> {
     try {
       // Create a SQL query with LEFT JOIN to get user data directly
       let query = `
@@ -514,6 +514,10 @@ export class DatabaseStorage implements IStorage {
       
       if (options?.entityType) {
         whereClauses.push(`e.entity_type = '${options.entityType}'`);
+      }
+      
+      if (options?.eventType) {
+        whereClauses.push(`e.event_type = '${options.eventType}'`);
       }
       
       if (whereClauses.length > 0) {
@@ -625,7 +629,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async getEventLogCount(filters?: { userId?: number, entityType?: string }): Promise<number> {
+  async getEventLogCount(filters?: { userId?: number, entityType?: string, eventType?: string }): Promise<number> {
     try {
       // Build SQL for count query with optional filters
       let query = `SELECT COUNT(*) as count FROM "event_logs"`;
@@ -637,6 +641,10 @@ export class DatabaseStorage implements IStorage {
       
       if (filters?.entityType) {
         whereClauses.push(`entity_type = '${filters.entityType}'`);
+      }
+      
+      if (filters?.eventType) {
+        whereClauses.push(`event_type = '${filters.eventType}'`);
       }
       
       if (whereClauses.length > 0) {
