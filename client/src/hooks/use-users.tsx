@@ -1,33 +1,47 @@
-import { useQuery } from "@tanstack/react-query";
-import { User } from "@shared/schema";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, getQueryFn, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
+export type User = {
+  id: number;
+  username: string;
+  fullName: string | null;
+  email: string | null;
+  role: string;
+  avatarColor: string | null;
+  isActive: boolean;
+  createdAt: string;
+};
 
 export function useUsers() {
-  const {
-    data: users,
-    isLoading,
-    error
-  } = useQuery<User[], Error>({
-    queryKey: ['/api/users'],
-    queryFn: async ({ queryKey }) => {
-      const res = await fetch(queryKey[0] as string, {
-        credentials: "include",
-      });
-      
-      if (res.status === 401) {
-        return [];
-      }
-      
-      if (!res.ok) {
-        throw new Error(`Error fetching users: ${res.statusText}`);
-      }
-      
-      return res.json();
-    }
-  });
+  const { toast } = useToast();
 
-  return {
-    users: users || [],
-    isLoading,
-    error
-  };
+  return useQuery<User[]>({
+    queryKey: ["/api/users"],
+    queryFn: getQueryFn(),
+    onError: (error: Error) => {
+      toast({
+        title: "Error fetching users",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useUser(userId: number) {
+  const { toast } = useToast();
+
+  return useQuery<User>({
+    queryKey: ["/api/users", userId],
+    queryFn: getQueryFn({ customEndpoint: `/api/users/${userId}` }),
+    enabled: !!userId,
+    onError: (error: Error) => {
+      toast({
+        title: "Error fetching user",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 }
