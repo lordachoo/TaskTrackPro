@@ -1,39 +1,16 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, getQueryFn } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
+import { getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { EventLog } from "@shared/schema";
 
-export type EventLog = {
-  id: number;
-  userId: number;
-  createdAt: string; // ISO date string
-  entityType: string;
-  eventType: string;
-  entityId: number;
-  details: Record<string, any>;
-  ipAddress: string | null;
-  userAgent: string | null;
-};
+// Extended EventLog type with username field which is joined from server
+export interface EventLogWithUser extends EventLog {
+  username: string;
+  timestamp: string; // The UI expects timestamp format
+}
 
-export type EventLogWithUser = EventLog & {
-  user?: {
-    username: string;
-    fullName: string | null;
-    avatarColor: string | null;
-  };
-};
-
-export type PaginatedEventLogs = {
-  logs: EventLog[];
-  pagination: {
-    total: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
-  };
-};
-
-export type EventLogCounts = {
+// Define types for event log data
+export interface EventLogCounts {
   taskCount: number;
   boardCount: number;
   categoryCount: number;
@@ -41,85 +18,74 @@ export type EventLogCounts = {
   userCount: number;
   systemCount: number;
   totalCount: number;
-};
-
-export function useEventLogCounts() {
-  const { toast } = useToast();
-
-  return useQuery<EventLogCounts>({
-    queryKey: ["/api/eventLogs/stats/counts"],
-    queryFn: getQueryFn(),
-    onError: (error: Error) => {
-      toast({
-        title: "Error fetching event log counts",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 }
 
-export function useEventLogs(page = 0, limit = 50, userId?: number, entityType?: string) {
-  const { toast } = useToast();
-  const [filters, setFilters] = useState({
-    page,
-    limit,
-    userId,
-    entityType,
-  });
-
-  const queryParams = new URLSearchParams();
-  queryParams.append("limit", String(filters.limit));
-  queryParams.append("offset", String(filters.page * filters.limit));
-  if (filters.userId) queryParams.append("userId", String(filters.userId));
-  if (filters.entityType) queryParams.append("entityType", filters.entityType);
-
-  const queryKey = ["/api/eventLogs", filters];
-
-  const query = useQuery<PaginatedEventLogs>({
-    queryKey,
-    queryFn: getQueryFn({ 
-      customEndpoint: `/api/eventLogs?${queryParams.toString()}` 
-    }),
-    onError: (error: Error) => {
-      toast({
-        title: "Error fetching event logs",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  return {
-    ...query,
-    filters,
-    setFilters,
-    updateFilters: (newFilters: Partial<typeof filters>) => {
-      setFilters((prev) => ({
-        ...prev,
-        ...newFilters,
-        // Reset to page 0 when filters change
-        page: newFilters.hasOwnProperty('page') ? (newFilters.page as number) : 0
-      }));
-    },
+export interface PaginatedEventLogs {
+  logs: EventLogWithUser[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    page: number;
+    totalPages: number;
   };
 }
 
-export function useEventLogDetails(eventLogId: number) {
+/**
+ * Hook to fetch event log counts by entity type
+ */
+export function useEventLogCounts() {
   const { toast } = useToast();
+  
+  return useQuery<EventLogCounts>({
+    queryKey: ['/api/eventLogs/stats/counts'],
+    queryFn: getQueryFn(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
 
+/**
+ * Hook to fetch paginated event logs with optional filtering
+ */
+export function useEventLogs({
+  page = 1,
+  limit = 25,
+  userId = null,
+  entityType = null
+}: {
+  page?: number;
+  limit?: number;
+  userId?: number | null;
+  entityType?: string | null;
+}) {
+  const { toast } = useToast();
+  
+  // Build query string
+  const queryParams = new URLSearchParams();
+  queryParams.append('limit', limit.toString());
+  queryParams.append('offset', ((page - 1) * limit).toString());
+  if (userId) queryParams.append('userId', userId.toString());
+  if (entityType) queryParams.append('entityType', entityType);
+  
+  const endpoint = `/api/eventLogs?${queryParams.toString()}`;
+  
+  return useQuery<PaginatedEventLogs>({
+    queryKey: ['/api/eventLogs', page, limit, userId, entityType],
+    queryFn: getQueryFn(),
+    staleTime: 1 * 60 * 1000 // 1 minute
+  });
+}
+
+/**
+ * Hook to fetch a single event log by ID
+ */
+export function useEventLog(id: number) {
+  const { toast } = useToast();
+  
   return useQuery<EventLog>({
-    queryKey: ["/api/eventLogs", eventLogId],
-    queryFn: getQueryFn({ 
-      customEndpoint: `/api/eventLogs/${eventLogId}` 
-    }),
-    enabled: !!eventLogId,
-    onError: (error: Error) => {
-      toast({
-        title: "Error fetching event log details",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+    queryKey: ['/api/eventLogs', id],
+    queryFn: getQueryFn(),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000 // 5 minutes
   });
 }

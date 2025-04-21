@@ -42,6 +42,7 @@ export default function Settings() {
     options: string | null;
     boardId: number;
   }>({ name: '', type: '', options: null, boardId: 1 }); // Default to 1, will update after boards load
+  const { user } = useAuth();
   const { toast } = useToast();
 
   // Fetch all boards
@@ -298,7 +299,17 @@ export default function Settings() {
         {/* Settings Content */}
         <div className="flex-1 overflow-auto bg-gray-50 p-6">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Settings</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Settings</h2>
+              
+              {user?.role === 'admin' && (
+                <Link to="/event-logs">
+                  <Button variant="outline" className="flex gap-2 items-center text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300">
+                    <FileText className="h-4 w-4" /> View System Logs
+                  </Button>
+                </Link>
+              )}
+            </div>
             
             <Tabs defaultValue="fields">
               <TabsList className="mb-6">
