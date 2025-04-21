@@ -48,8 +48,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       >
         <div className="p-5 border-b border-gray-700">
           <div className="flex flex-col items-center">
-            <span className="text-white text-2xl font-bold">TaskFlow</span>
-            <span className="text-gray-400 text-xs">v1.1</span>
+            <span className="text-white text-2xl font-bold">{APP_NAME}</span>
+            <span className="text-gray-400 text-xs">{APP_VERSION}</span>
           </div>
         </div>
         
