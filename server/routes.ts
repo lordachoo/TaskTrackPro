@@ -252,6 +252,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertCustomFieldSchema.parse(req.body);
       const customField = await storage.createCustomField(validatedData);
+      
+      // Log custom field creation
+      await logCustomFieldEvent(
+        req,
+        EventTypes.CUSTOM_FIELD_CREATED,
+        customField.id,
+        {
+          name: customField.name,
+          type: customField.type,
+          boardId: customField.boardId
+        }
+      );
+      
       res.status(201).json(customField);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -265,6 +278,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.put("/customFields/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
+      
+      // Get the existing custom field for logging
+      const existingField = await storage.getCustomField(id);
+      if (!existingField) {
+        return res.status(404).json({ message: "Custom field not found" });
+      }
+      
       const validatedData = insertCustomFieldSchema.partial().parse(req.body);
       
       const updatedCustomField = await storage.updateCustomField(id, validatedData);
@@ -272,6 +292,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!updatedCustomField) {
         return res.status(404).json({ message: "Custom field not found" });
       }
+      
+      // Log custom field update
+      await logCustomFieldEvent(
+        req,
+        EventTypes.CUSTOM_FIELD_UPDATED,
+        id,
+        {
+          previous: {
+            name: existingField.name,
+            type: existingField.type,
+            options: existingField.options
+          },
+          updated: {
+            name: updatedCustomField.name,
+            type: updatedCustomField.type,
+            options: updatedCustomField.options
+          },
+          changedFields: Object.keys(validatedData)
+        }
+      );
       
       res.json(updatedCustomField);
     } catch (error) {
@@ -286,6 +326,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.delete("/customFields/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
+      
+      // Get the custom field first for logging
+      const field = await storage.getCustomField(id);
+      if (!field) {
+        return res.status(404).json({ message: "Custom field not found" });
+      }
+      
+      // Log the custom field deletion before actually deleting
+      await logCustomFieldEvent(
+        req,
+        EventTypes.CUSTOM_FIELD_DELETED,
+        id,
+        {
+          field: {
+            name: field.name,
+            type: field.type,
+            options: field.options,
+            boardId: field.boardId
+          }
+        }
+      );
+      
       const success = await storage.deleteCustomField(id);
       
       if (!success) {
