@@ -169,14 +169,56 @@ export default function TaskCard({
     setMenuOpen(!menuOpen);
   };
 
+  // Fetch custom fields for this board to determine field types
+  const { data: customFieldsData = [] } = useQuery({
+    queryKey: [`/api/boards/${boardId}/customFields`],
+    queryFn: async () => {
+      const res = await fetch(`/api/boards/${boardId}/customFields`);
+      if (!res.ok) throw new Error('Failed to load custom fields');
+      return res.json();
+    }
+  });
+
+  // Create a map of field names to field types for quick lookup
+  const fieldTypeMap = new Map<string, string>();
+  customFieldsData.forEach((field: any) => {
+    fieldTypeMap.set(field.name, field.type);
+  });
+  
   // Helper function to safely render custom data values
-  const renderCustomValue = (value: unknown): ReactNode => {
+  const renderCustomValue = (key: string, value: unknown): ReactNode => {
     if (value === null || value === undefined) {
       return '';
     }
+    
+    // Get field type from map
+    const fieldType = fieldTypeMap.get(key);
+    
+    // Handle URL type fields
+    if (fieldType === 'url' && typeof value === 'string' && value.trim() !== '') {
+      let url = value;
+      // Add https:// prefix if not present
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = `https://${url}`;
+      }
+      
+      return (
+        <a 
+          href={url} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="text-blue-600 hover:underline break-all" 
+          onClick={(e) => e.stopPropagation()} // Prevent card from opening when link is clicked
+        >
+          {value}
+        </a>
+      );
+    }
+    
     if (typeof value === 'object') {
       return JSON.stringify(value);
     }
+    
     return String(value);
   };
 
@@ -286,16 +328,15 @@ export default function TaskCard({
               <div className="mt-3 pt-3 border-t border-gray-100">
                 {Object.entries(customData as Record<string, unknown>)
                   .filter(([key]) => {
-                    // Check if the custom field still exists in the board
-                    const validFields = queryClient.getQueryData<any[]>(['/api/boards', boardId, 'customFields']) || [];
-                    return validFields.some(field => field.name === key);
+                    // Check if the custom field still exists in the board using our already fetched customFieldsData
+                    return customFieldsData.some((field: any) => field.name === key);
                   })
                   .map(([key, value], index) => (
-                    <div key={index} className="flex justify-between text-xs mt-1">
-                      <span className="text-gray-500">{key}:</span>
-                      <span className="text-gray-700 font-medium">
-                        {renderCustomValue(value)}
-                      </span>
+                    <div key={index} className="text-xs mt-2">
+                      <div className="text-gray-500 font-medium mb-1">{key}:</div>
+                      <div className="text-gray-700 pl-2">
+                        {renderCustomValue(key, value)}
+                      </div>
                     </div>
                   ))
                 }
