@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -33,8 +33,8 @@ interface TopNavProps {
   onBoardSelectorToggle?: () => void;
 }
 
-export default function TopNav({ 
-  boardName, 
+export default function TopNav({
+  boardName,
   onMobileMenuToggle,
   onBoardNameChange,
   onBoardArchive,
@@ -45,26 +45,26 @@ export default function TopNav({
   activeBoardId,
   onBoardSelect,
   boardSelectorOpen = false,
-  onBoardSelectorToggle
+  onBoardSelectorToggle,
 }: TopNavProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(boardName);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { user } = useAuth();
-  
+
   // Get user initials for avatar
   const getInitials = () => {
     if (!user) return "?";
-    
+
     if (user.fullName) {
       return user.fullName
         .split(" ")
-        .map(name => name[0])
+        .map((name) => name[0])
         .join("")
         .toUpperCase()
         .substring(0, 2);
     }
-    
+
     return user.username.substring(0, 2).toUpperCase();
   };
 
@@ -84,10 +84,10 @@ export default function TopNav({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSubmit();
     }
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       setIsEditing(false);
       setEditedName(boardName);
     }
@@ -98,7 +98,7 @@ export default function TopNav({
       <header className="bg-white shadow-sm z-10">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center">
-            <button 
+            <button
               className="md:hidden text-gray-600 focus:outline-none mr-4"
               onClick={onMobileMenuToggle}
             >
@@ -115,16 +115,20 @@ export default function TopNav({
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="flex items-center px-2 py-1 bg-gray-100 rounded-md text-gray-700 text-sm">
-                      <span className="font-medium truncate max-w-[120px]">{boardName}</span>
+                      <span className="font-medium truncate max-w-[120px]">
+                        {boardName}
+                      </span>
                       <i className="ri-arrow-down-s-line ml-1"></i>
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-56">
                     {allBoards.map((board) => (
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         key={board.id}
                         onClick={() => onBoardSelect(board.id)}
-                        className={board.id === activeBoardId ? "bg-gray-100" : ""}
+                        className={
+                          board.id === activeBoardId ? "bg-gray-100" : ""
+                        }
                       >
                         <div className="flex items-center justify-between w-full">
                           <span>{board.name}</span>
@@ -156,7 +160,7 @@ export default function TopNav({
                   <div className="flex items-center">
                     <span className="text-sm font-medium">{boardName}</span>
                     {onBoardNameChange && (
-                      <button 
+                      <button
                         className="ml-2 text-gray-500 hover:text-gray-700"
                         onClick={handleEditClick}
                       >
@@ -170,7 +174,10 @@ export default function TopNav({
             <div className="hidden md:flex items-center">
               {/* Board Selector Dropdown */}
               {allBoards && allBoards.length > 1 && onBoardSelect && (
-                <DropdownMenu open={boardSelectorOpen} onOpenChange={onBoardSelectorToggle}>
+                <DropdownMenu
+                  open={boardSelectorOpen}
+                  onOpenChange={onBoardSelectorToggle}
+                >
                   <DropdownMenuTrigger asChild>
                     <button className="flex items-center mr-4 px-3 py-1 rounded hover:bg-gray-100 text-gray-700">
                       <i className="ri-dashboard-line mr-2"></i>
@@ -180,10 +187,12 @@ export default function TopNav({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-56">
                     {allBoards.map((board) => (
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         key={board.id}
                         onClick={() => onBoardSelect(board.id)}
-                        className={board.id === activeBoardId ? "bg-gray-100" : ""}
+                        className={
+                          board.id === activeBoardId ? "bg-gray-100" : ""
+                        }
                       >
                         <div className="flex items-center justify-between w-full">
                           <span>{board.name}</span>
@@ -196,7 +205,7 @@ export default function TopNav({
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-              
+
               {/* Board Name (Editable) */}
               {isEditing ? (
                 <input
@@ -210,8 +219,10 @@ export default function TopNav({
                 />
               ) : (
                 <>
-                  <h1 className="text-xl font-semibold text-gray-800">{boardName}</h1>
-                  <button 
+                  <h1 className="text-xl font-semibold text-gray-800">
+                    {boardName}
+                  </h1>
+                  <button
                     className="ml-4 text-gray-500 hover:text-gray-700"
                     onClick={handleEditClick}
                   >
@@ -228,7 +239,7 @@ export default function TopNav({
             <button className="p-2 rounded-full hover:bg-gray-100 text-gray-600">
               <i className="ri-notification-line text-lg"></i>
             </button>
-            
+
             {/* Board actions dropdown */}
             {!disableBoardActions && (
               <DropdownMenu>
@@ -252,7 +263,7 @@ export default function TopNav({
                   )}
                   <DropdownMenuSeparator />
                   {onBoardArchive && (
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={onBoardArchive}
                       className="text-amber-600 focus:text-amber-600"
                     >
@@ -261,7 +272,7 @@ export default function TopNav({
                     </DropdownMenuItem>
                   )}
                   {onBoardDelete && (
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => setIsDeleteDialogOpen(true)}
                       className="text-red-600 focus:text-red-600"
                     >
@@ -272,10 +283,10 @@ export default function TopNav({
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-            
+
             <div className="md:hidden">
-              <div 
-                className="w-8 h-8 rounded-full flex items-center justify-center" 
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center"
                 style={{ backgroundColor: user?.avatarColor || "#6366f1" }}
               >
                 <span className="text-white font-medium">{getInitials()}</span>
@@ -284,16 +295,23 @@ export default function TopNav({
           </div>
         </div>
       </header>
-      
+
       {/* Delete Board Confirmation Dialog */}
       {onBoardDelete && (
-        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the board
-                <span className="font-medium text-foreground"> "{boardName}" </span>
+                This action cannot be undone. This will permanently delete the
+                board
+                <span className="font-medium text-foreground">
+                  {" "}
+                  "{boardName}"{" "}
+                </span>
                 and all of its tasks and categories.
               </AlertDialogDescription>
             </AlertDialogHeader>

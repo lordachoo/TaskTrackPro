@@ -12,25 +12,41 @@ import { useUsers } from "@/hooks/use-users";
 
 // Event log types for more readable UI
 const eventTypeLabels: Record<string, string> = {
+  // Task events
   "task.created": "Task Created",
   "task.updated": "Task Updated",
   "task.deleted": "Task Deleted",
   "task.archived": "Task Archived",
   "task.restored": "Task Restored",
+  "task.moved": "Task Moved",
+  
+  // Board events
   "board.created": "Board Created",
   "board.updated": "Board Updated",
+  "board.deleted": "Board Deleted",
   "board.archived": "Board Archived",
   "board.restored": "Board Restored",
+  
+  // Category events
   "category.created": "Category Created",
   "category.updated": "Category Updated",
   "category.deleted": "Category Deleted",
-  "custom_field.created": "Custom Field Created",
-  "custom_field.updated": "Custom Field Updated",
-  "custom_field.deleted": "Custom Field Deleted",
+  "category.reordered": "Categories Reordered",
+  
+  // Custom Field events - camelCase matches backend
+  "customField.created": "Custom Field Created",
+  "customField.updated": "Custom Field Updated",
+  "customField.deleted": "Custom Field Deleted",
+  
+  // User events
   "user.created": "User Created",
   "user.updated": "User Updated",
   "user.deleted": "User Deleted",
-  "system.setting_updated": "System Setting Updated"
+  "user.login": "User Login",
+  "user.logout": "User Logout",
+  
+  // System events
+  "system.settingUpdated": "System Setting Updated"
 };
 
 // Entity types for displaying readable UI
@@ -38,7 +54,7 @@ const entityTypeLabels: Record<string, string> = {
   "task": "Task",
   "board": "Board",
   "category": "Category",
-  "custom_field": "Custom Field",
+  "customField": "Custom Field",
   "user": "User",
   "system": "System"
 };
@@ -229,7 +245,7 @@ export default function EventLogs() {
                     <TabsTrigger value="task">Tasks</TabsTrigger>
                     <TabsTrigger value="board">Boards</TabsTrigger>
                     <TabsTrigger value="category">Categories</TabsTrigger>
-                    <TabsTrigger value="custom_field">Custom Fields</TabsTrigger>
+                    <TabsTrigger value="customField">Custom Fields</TabsTrigger>
                     <TabsTrigger value="user">Users</TabsTrigger>
                   </TabsList>
                 </Tabs>
