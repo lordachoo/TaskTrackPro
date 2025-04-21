@@ -10,7 +10,7 @@ import {
 } from "@shared/schema";
 import { IStorage } from "./storage";
 import { db } from "./db";
-import { and, eq, asc } from "drizzle-orm";
+import { and, eq, asc, desc, count, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 export class DatabaseStorage implements IStorage {
@@ -440,7 +440,7 @@ export class DatabaseStorage implements IStorage {
       }
       
       // Sort by createdAt descending (newest first)
-      query = query.orderBy(db.desc(eventLogs.createdAt));
+      query = query.orderBy(desc(eventLogs.createdAt));
       
       // Apply pagination
       if (options?.limit) {
@@ -467,7 +467,7 @@ export class DatabaseStorage implements IStorage {
   
   async getEventLogCount(filters?: { userId?: number, entityType?: string }): Promise<number> {
     try {
-      let query = db.select({ count: db.count() }).from(eventLogs);
+      let query = db.select({ count: count() }).from(eventLogs);
       
       if (filters?.userId) {
         query = query.where(eq(eventLogs.userId, filters.userId));
