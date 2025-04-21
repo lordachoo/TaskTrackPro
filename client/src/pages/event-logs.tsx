@@ -314,7 +314,7 @@ export default function EventLogs() {
                               {new Date(log.timestamp).toLocaleString()}
                             </td>
                             <td className="py-3 px-4">
-                              <span className="font-medium">{log.username}</span>
+                              <span className="font-medium">{log.user ? log.user.username : 'Unknown'}</span>
                             </td>
                             <td className="py-3 px-4">
                               <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
@@ -401,7 +401,7 @@ export default function EventLogs() {
                       <div className="space-y-3 text-sm">
                         <div className="grid grid-cols-3 gap-2">
                           <span className="text-gray-500">User:</span>
-                          <span className="col-span-2 font-medium">{selectedLog.username}</span>
+                          <span className="col-span-2 font-medium">{selectedLog.user ? selectedLog.user.username : 'Unknown'}</span>
                         </div>
                         <div className="grid grid-cols-3 gap-2">
                           <span className="text-gray-500">User ID:</span>
@@ -425,7 +425,7 @@ export default function EventLogs() {
                       <h3 className="text-sm font-medium text-gray-500 mb-1">Event Details</h3>
                       <div className="bg-gray-50 rounded-md p-4 overflow-auto max-h-60 border text-sm">
                         <pre className="whitespace-pre-wrap">
-                          {JSON.stringify(JSON.parse(selectedLog.details), null, 2)}
+                          {JSON.stringify(selectedLog.details, null, 2)}
                         </pre>
                       </div>
                     </div>

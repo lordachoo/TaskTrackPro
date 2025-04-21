@@ -86,10 +86,14 @@ export function EventLogTable({
       return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
     }
     
-    if (a[sortConfig.key] < b[sortConfig.key]) {
+    // Handle other fields with type safety
+    const aValue = String(a[sortConfig.key] || '');
+    const bValue = String(b[sortConfig.key] || '');
+    
+    if (aValue < bValue) {
       return sortConfig.direction === 'asc' ? -1 : 1;
     }
-    if (a[sortConfig.key] > b[sortConfig.key]) {
+    if (aValue > bValue) {
       return sortConfig.direction === 'asc' ? 1 : -1;
     }
     return 0;
