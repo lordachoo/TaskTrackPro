@@ -432,14 +432,14 @@ export class DatabaseStorage implements IStorage {
       let query = `
         SELECT 
           e.id, 
-          e."eventType", 
-          e."entityType", 
-          e."entityId", 
-          e."userId", 
+          e.event_type as "eventType", 
+          e.entity_type as "entityType", 
+          e.entity_id as "entityId", 
+          e.user_id as "userId", 
           e.details, 
-          e."ipAddress", 
-          e."userAgent", 
-          e."createdAt",
+          e.ip_address as "ipAddress", 
+          e.user_agent as "userAgent", 
+          e.created_at as "createdAt",
           CASE WHEN u.id IS NOT NULL THEN 
             json_build_object(
               'id', u.id,
@@ -451,16 +451,16 @@ export class DatabaseStorage implements IStorage {
           ELSE NULL
           END as user_data
         FROM "event_logs" e
-        LEFT JOIN "users" u ON e."userId" = u.id
+        LEFT JOIN "users" u ON e.user_id = u.id
       `;
       
       const whereClauses = [];
       if (options?.userId) {
-        whereClauses.push(`e."userId" = ${options.userId}`);
+        whereClauses.push(`e.user_id = ${options.userId}`);
       }
       
       if (options?.entityType) {
-        whereClauses.push(`e."entityType" = '${options.entityType}'`);
+        whereClauses.push(`e.entity_type = '${options.entityType}'`);
       }
       
       if (whereClauses.length > 0) {
@@ -468,7 +468,7 @@ export class DatabaseStorage implements IStorage {
       }
       
       // Add ordering and pagination
-      query += ` ORDER BY e."createdAt" DESC`;
+      query += ` ORDER BY e.created_at DESC`;
       
       if (options?.limit) {
         const offset = options.offset || 0;
@@ -516,14 +516,14 @@ export class DatabaseStorage implements IStorage {
       const query = `
         SELECT 
           e.id, 
-          e."eventType", 
-          e."entityType", 
-          e."entityId", 
-          e."userId", 
+          e.event_type as "eventType", 
+          e.entity_type as "entityType", 
+          e.entity_id as "entityId", 
+          e.user_id as "userId", 
           e.details, 
-          e."ipAddress", 
-          e."userAgent", 
-          e."createdAt",
+          e.ip_address as "ipAddress", 
+          e.user_agent as "userAgent", 
+          e.created_at as "createdAt",
           CASE WHEN u.id IS NOT NULL THEN 
             json_build_object(
               'id', u.id,
@@ -535,7 +535,7 @@ export class DatabaseStorage implements IStorage {
           ELSE NULL
           END as user_data
         FROM "event_logs" e
-        LEFT JOIN "users" u ON e."userId" = u.id
+        LEFT JOIN "users" u ON e.user_id = u.id
         WHERE e.id = ${id}
       `;
       
@@ -579,11 +579,11 @@ export class DatabaseStorage implements IStorage {
       
       const whereClauses = [];
       if (filters?.userId) {
-        whereClauses.push(`"userId" = ${filters.userId}`);
+        whereClauses.push(`user_id = ${filters.userId}`);
       }
       
       if (filters?.entityType) {
-        whereClauses.push(`"entityType" = '${filters.entityType}'`);
+        whereClauses.push(`entity_type = '${filters.entityType}'`);
       }
       
       if (whereClauses.length > 0) {
