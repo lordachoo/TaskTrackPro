@@ -23,7 +23,6 @@ export interface EventLogDetails {
 
 // Extended EventLog type with user information which is joined from server
 export interface EventLogWithUser extends Omit<EventLog, 'details'> {
-  timestamp: string; // The UI expects timestamp format
   details: EventLogDetails;
   user?: {
     id: number;

@@ -311,7 +311,7 @@ export default function EventLogs() {
                             onClick={() => handleSelectLog(log)}
                           >
                             <td className="py-3 px-4">
-                              {new Date(log.timestamp).toLocaleString()}
+                              {new Date(log.createdAt).toLocaleString()}
                             </td>
                             <td className="py-3 px-4">
                               <span className="font-medium">{log.user ? log.user.username : 'Unknown'}</span>
@@ -391,7 +391,7 @@ export default function EventLogs() {
                         </div>
                         <div className="grid grid-cols-3 gap-2">
                           <span className="text-gray-500">Timestamp:</span>
-                          <span className="col-span-2 font-medium">{new Date(selectedLog.timestamp).toLocaleString()}</span>
+                          <span className="col-span-2 font-medium">{new Date(selectedLog.createdAt).toLocaleString()}</span>
                         </div>
                       </div>
                     </div>

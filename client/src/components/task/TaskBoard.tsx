@@ -396,6 +396,16 @@ export default function TaskBoard({ boardId }: TaskBoardProps) {
       });
       
       setIsTaskModalOpen(false);
+      
+      // Refresh all data for the board to ensure we have the latest state
+      queryClient.invalidateQueries({ queryKey: ['/api/boards', boardId, 'categories'] });
+      
+      // Force refresh of all task data across all categories
+      if (categories) {
+        categories.forEach(category => {
+          queryClient.invalidateQueries({ queryKey: ['/api/categories', category.id, 'tasks'] });
+        });
+      }
     },
     onError: (error) => {
       console.error('Error updating task:', error);
