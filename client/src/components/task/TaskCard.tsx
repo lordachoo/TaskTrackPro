@@ -279,7 +279,19 @@ export default function TaskCard({
             
             {description && (
               <div className="text-sm text-gray-600 mb-3 prose prose-sm max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    a: ({ node, ...props }) => (
+                      <a 
+                        {...props} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()} // Prevent card from opening when link is clicked
+                      />
+                    )
+                  }}
+                >
                   {description}
                 </ReactMarkdown>
               </div>
