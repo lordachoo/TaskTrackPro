@@ -14,6 +14,7 @@ import { Task, Board, Category } from "@shared/schema";
 export default function Archived() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Fetch all data upfront
   const { 
@@ -87,12 +88,14 @@ export default function Archived() {
     data: archivedBoards = [],
     isLoading: isArchivedBoardsLoading
   } = useQuery({
-    queryKey: ['/api/users', 1, 'archivedBoards'], // For demo purposes, always use userId 1
+    queryKey: ['/api/users', user?.id, 'archivedBoards'],
     queryFn: async () => {
-      const res = await fetch('/api/users/1/archivedBoards');
+      if (!user) return [];
+      const res = await fetch(`/api/users/${user.id}/archivedBoards`);
       if (!res.ok) throw new Error('Failed to load archived boards');
       return res.json();
-    }
+    },
+    enabled: !!user
   });
 
   // Mutations
@@ -170,7 +173,7 @@ export default function Archived() {
         description: "The board has been restored successfully.",
       });
       
-      queryClient.invalidateQueries({ queryKey: ['/api/users', 1, 'archivedBoards'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users', user?.id, 'archivedBoards'] });
       queryClient.invalidateQueries({ queryKey: ['/api/boards'] });
     },
     onError: (error) => {
@@ -194,7 +197,7 @@ export default function Archived() {
         description: "The board has been permanently deleted.",
       });
       
-      queryClient.invalidateQueries({ queryKey: ['/api/users', 1, 'archivedBoards'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users', user?.id, 'archivedBoards'] });
     },
     onError: (error) => {
       console.error('Error deleting board:', error);
