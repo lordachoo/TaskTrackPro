@@ -291,19 +291,23 @@ export default function TaskCard({
                       />
                     ),
                     code: ({ node, inline, className, children, ...props }: any) => {
+                      if (inline) {
+                        // Inline code - styled to blend with surrounding text
+                        return (
+                          <code className="bg-gray-100/50 text-gray-700 px-0.5 rounded text-[0.9em] font-mono inline" {...props}>
+                            {children}
+                          </code>
+                        );
+                      }
+                      
+                      // Block code
                       const match = /language-(\w+)/.exec(className || '');
-                      return !inline ? (
-                        // Block code
+                      return (
                         <pre className={className}>
                           <code className={match ? `language-${match[1]}` : ''} {...props}>
                             {children}
                           </code>
                         </pre>
-                      ) : (
-                        // Inline code - using more subtle styling that blends better with text
-                        <code className="bg-gray-100/50 text-gray-700 px-0.5 rounded text-[0.9em] font-mono" {...props}>
-                          {children}
-                        </code>
                       );
                     }
                   }}
