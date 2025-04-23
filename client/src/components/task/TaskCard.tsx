@@ -292,11 +292,11 @@ export default function TaskCard({
                     ),
                     code: ({ node, inline, className, children, ...props }: any) => {
                       if (inline) {
-                        // Inline code - styled to blend with surrounding text
+                        // Inline code - using a span to ensure it stays truly inline
                         return (
-                          <code className="bg-gray-100/50 text-gray-700 px-0.5 rounded text-[0.9em] font-mono inline" {...props}>
+                          <span className="bg-gray-100/50 text-gray-700 px-0.5 rounded text-[0.9em] font-mono" {...props}>
                             {children}
-                          </code>
+                          </span>
                         );
                       }
                       
