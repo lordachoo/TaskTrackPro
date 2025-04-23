@@ -290,7 +290,7 @@ export default function TaskCard({
                         onClick={(e) => e.stopPropagation()} // Prevent card from opening when link is clicked
                       />
                     ),
-                    code: ({ node, inline, className, children, ...props }) => {
+                    code: ({ node, inline, className, children, ...props }: any) => {
                       const match = /language-(\w+)/.exec(className || '');
                       return !inline ? (
                         // Block code
@@ -300,8 +300,8 @@ export default function TaskCard({
                           </code>
                         </pre>
                       ) : (
-                        // Inline code
-                        <code className="bg-gray-100 text-gray-800 px-1 py-0.5 rounded text-xs font-mono" {...props}>
+                        // Inline code - using more subtle styling that blends better with text
+                        <code className="bg-gray-100/50 text-gray-700 px-0.5 rounded text-[0.9em] font-mono" {...props}>
                           {children}
                         </code>
                       );
