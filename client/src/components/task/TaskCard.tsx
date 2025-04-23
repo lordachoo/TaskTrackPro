@@ -291,10 +291,21 @@ export default function TaskCard({
                       />
                     ),
                     code: ({ node, inline, className, children, ...props }: any) => {
+                      // Only override inline code - the block code remains as is
                       if (inline) {
-                        // Inline code - using a span to ensure it stays truly inline
+                        // Use span with inline display for inline code
                         return (
-                          <span className="bg-gray-100/50 text-gray-700 px-0.5 rounded text-[0.9em] font-mono" {...props}>
+                          <span 
+                            style={{ 
+                              backgroundColor: 'rgba(243, 244, 246, 0.5)',
+                              color: '#374151',
+                              padding: '0 2px',
+                              borderRadius: '2px',
+                              fontFamily: 'monospace',
+                              fontSize: '0.9em'
+                            }}
+                            {...props}
+                          >
                             {children}
                           </span>
                         );
