@@ -104,12 +104,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log the board update event
       await logBoardEvent(req, EventTypes.BOARD_UPDATED, updatedBoard.id, {
         before: {
-          name: originalBoard.name,
-          description: originalBoard.description
+          name: originalBoard.name
         },
         after: {
-          name: updatedBoard.name,
-          description: updatedBoard.description
+          name: updatedBoard.name
         },
         changedFields: Object.keys(validatedData)
       });

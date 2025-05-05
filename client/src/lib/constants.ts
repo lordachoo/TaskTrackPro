@@ -3,7 +3,7 @@
  */
 
 // Application version - update this when releasing new versions
-export const APP_VERSION = "v1.3";
+export const APP_VERSION = "v1.4";
 
 // Application name
 export const APP_NAME = "TaskFlow";

@@ -5,10 +5,11 @@
 The development team is currently focused on enhancing the UI/UX experience and fixing specific rendering issues in the application, particularly around markdown formatting in task descriptions.
 
 ### Recent Completed Work
-- Fixed an issue where non-archived boards were incorrectly appearing in the Archived boards section
-- Modified the task form to properly display and edit multiple URL-type custom fields in the same task
+- Modified the archived boards endpoint to use direct SQL queries to ensure all archived boards are retrieved properly
+- Fixed an issue where archived boards weren't displaying in the Archived section for admin users
 - Enhanced markdown rendering in task descriptions to make links open in new tabs with target="_blank" attribute
 - Implemented centralized version management with APP_VERSION and APP_NAME constants for easier updates
+- Added debug logging to help diagnose database and API response issues
 
 ### Active Task
 Most recently, work has focused on improving markdown rendering in task descriptions, specifically:

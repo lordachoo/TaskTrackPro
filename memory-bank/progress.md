@@ -14,6 +14,7 @@
 - ✅ URL-type custom fields display as clickable links
 - ✅ Task archiving and restoration
 - ✅ Board archiving and restoration
+- ✅ Admin users can see all archived boards, regardless of owner
 
 ### User Interface
 - ✅ Dashboard view showing all boards
