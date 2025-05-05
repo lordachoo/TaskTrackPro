@@ -135,14 +135,25 @@ export class DatabaseStorage implements IStorage {
 
   // Board methods
   async getBoards(userId: number, showArchived: boolean = false): Promise<Board[]> {
-    return await db.select()
-      .from(boards)
-      .where(
-        and(
-          eq(boards.userId, userId),
-          showArchived ? eq(boards.isArchived, true) : eq(boards.isArchived, false)
-        )
-      );
+    // First get the user to check if they're an admin
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    
+    // If showing archived boards and user is an admin, show all archived boards
+    if (showArchived && user && user.role === 'admin') {
+      return await db.select()
+        .from(boards)
+        .where(eq(boards.isArchived, true));
+    } else {
+      // Otherwise, only show boards belonging to this user
+      return await db.select()
+        .from(boards)
+        .where(
+          and(
+            eq(boards.userId, userId),
+            showArchived ? eq(boards.isArchived, true) : eq(boards.isArchived, false)
+          )
+        );
+    }
   }
 
   async getBoard(id: number): Promise<Board | undefined> {
