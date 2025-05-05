@@ -2,6 +2,7 @@ import express, { type Express, Request, Response, NextFunction } from "express"
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
+import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { 
   insertBoardSchema, 
@@ -719,8 +720,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get archived boards
   apiRouter.get("/users/:userId/archivedBoards", async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.params.userId);
-      const archivedBoards = await storage.getBoards(userId, true);
+      console.log(`Archived boards request for userId ${req.params.userId}`);
+      
+      // Direct SQL query to get all archived boards
+      const query = `
+        SELECT id, name, user_id as "userId", is_archived as "isArchived", created_at as "createdAt"
+        FROM boards 
+        WHERE is_archived = true
+      `;
+      
+      const result = await db.execute(sql.raw(query));
+      console.log('Archived boards SQL query result:', result.rows);
+      
+      // Format the boards for response
+      const archivedBoards = result.rows.map(row => ({
+        id: Number(row.id),
+        name: String(row.name),
+        userId: Number(row.userId),
+        isArchived: Boolean(row.isArchived),
+        createdAt: new Date(String(row.createdAt))
+      }));
+      
+      console.log(`Returning ${archivedBoards.length} archived boards`);
       res.json(archivedBoards);
     } catch (error) {
       console.error("Error getting archived boards:", error);
