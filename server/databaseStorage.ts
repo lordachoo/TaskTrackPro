@@ -135,24 +135,53 @@ export class DatabaseStorage implements IStorage {
 
   // Board methods
   async getBoards(userId: number, showArchived: boolean = false): Promise<Board[]> {
-    // First get the user to check if they're an admin
-    const [user] = await db.select().from(users).where(eq(users.id, userId));
-    
-    // If showing archived boards and user is an admin, show all archived boards
-    if (showArchived && user && user.role === 'admin') {
-      return await db.select()
-        .from(boards)
-        .where(eq(boards.isArchived, true));
-    } else {
-      // Otherwise, only show boards belonging to this user
-      return await db.select()
-        .from(boards)
-        .where(
-          and(
-            eq(boards.userId, userId),
-            showArchived ? eq(boards.isArchived, true) : eq(boards.isArchived, false)
-          )
-        );
+    try {
+      console.log(`getBoards called with userId=${userId}, showArchived=${showArchived}`);
+      
+      // First get the user to check if they're an admin
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      console.log(`User role for userId=${userId}: ${user?.role || 'undefined'}`);
+      
+      let query = '';
+      
+      // If showing archived boards and user is an admin, show all archived boards
+      if (showArchived && user && user.role === 'admin') {
+        console.log(`Admin user ${userId} is requesting all archived boards`);
+        
+        // Use raw SQL to directly query archived boards
+        query = `
+          SELECT id, name, user_id as "userId", is_archived as "isArchived", created_at as "createdAt"
+          FROM boards 
+          WHERE is_archived = true
+        `;
+      } else {
+        // Otherwise, only show boards belonging to this user
+        console.log(`Showing ${showArchived ? 'archived' : 'non-archived'} boards for user ${userId}`);
+        
+        // Use raw SQL to query user's boards
+        query = `
+          SELECT id, name, user_id as "userId", is_archived as "isArchived", created_at as "createdAt"
+          FROM boards 
+          WHERE user_id = ${userId} 
+          AND is_archived = ${showArchived}
+        `;
+      }
+      
+      // Execute the query
+      const result = await db.execute(sql.raw(query));
+      console.log('Raw SQL query result:', result);
+      
+      // Return the boards
+      return result.rows.map(row => ({
+        id: Number(row.id),
+        name: String(row.name),
+        userId: Number(row.userId),
+        isArchived: Boolean(row.isArchived),
+        createdAt: new Date(row.createdAt)
+      }));
+    } catch (error) {
+      console.error('Error in getBoards:', error);
+      throw error;
     }
   }
 
